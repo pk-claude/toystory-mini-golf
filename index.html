@@ -1,0 +1,2088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#ffb347" />
+<title>Toy Story Mini Golf</title>
+<style>
+  :root {
+    --andy-blue: #6fb3e0;
+    --andy-cloud: #fefefe;
+    --buzz-purple: #5b2d9a;
+    --buzz-green: #8bcf3f;
+    --woody-yellow: #f7c94a;
+    --woody-red: #d34a3c;
+    --woody-brown: #6b4628;
+    --alien-green: #6fd96a;
+    --bg-dark: #1d2342;
+    --ui-card: rgba(255, 255, 255, 0.96);
+    --shadow-lg: 0 12px 32px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.2);
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+  html, body {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--bg-dark);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color: #222;
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+
+  #game-canvas {
+    display: block;
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(180deg, #8dd3f4 0%, #b3e4f5 50%, #d8f0e0 100%);
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .overlay.active {
+    display: flex;
+    pointer-events: auto;
+  }
+
+  /* ---------- Title screen ---------- */
+  #title-screen {
+    background: radial-gradient(ellipse at top, #8dd3f4 0%, #4aa3d9 45%, #1d2342 100%);
+    flex-direction: column;
+    padding: 24px;
+    text-align: center;
+    gap: 18px;
+  }
+  #title-screen .clouds {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(ellipse 90px 40px at 15% 20%, #fff 0%, rgba(255,255,255,0.6) 60%, transparent 70%),
+      radial-gradient(ellipse 120px 50px at 80% 30%, #fff 0%, rgba(255,255,255,0.5) 60%, transparent 70%),
+      radial-gradient(ellipse 70px 30px at 50% 12%, #fff 0%, rgba(255,255,255,0.5) 60%, transparent 70%),
+      radial-gradient(ellipse 100px 40px at 30% 75%, #fff 0%, rgba(255,255,255,0.4) 60%, transparent 70%);
+    opacity: 0.8;
+    animation: float 22s linear infinite;
+  }
+  @keyframes float { 0%{transform:translateX(0);} 100%{transform:translateX(-60px);} }
+
+  .title-logo {
+    display: flex; flex-direction: column; align-items: center;
+    position: relative; z-index: 2;
+  }
+  .title-logo .top {
+    font-family: "Impact", "Arial Black", sans-serif;
+    font-size: clamp(28px, 7vw, 44px);
+    color: #fff;
+    letter-spacing: 2px;
+    text-shadow: 2px 2px 0 var(--buzz-purple), 4px 4px 0 rgba(0,0,0,0.3);
+    transform: rotate(-3deg);
+  }
+  .title-logo .main {
+    font-family: "Impact", "Arial Black", sans-serif;
+    font-size: clamp(54px, 14vw, 96px);
+    color: var(--woody-yellow);
+    letter-spacing: 3px;
+    text-shadow:
+      -3px -3px 0 #d34a3c, 3px -3px 0 #d34a3c, -3px 3px 0 #d34a3c, 3px 3px 0 #d34a3c,
+      6px 6px 0 rgba(0,0,0,0.25);
+    line-height: 0.9;
+    transform: rotate(-2deg);
+  }
+  .title-logo .sub {
+    font-family: "Impact", "Arial Black", sans-serif;
+    font-size: clamp(20px, 5vw, 30px);
+    color: #fff;
+    letter-spacing: 4px;
+    text-shadow: 2px 2px 0 var(--buzz-purple), 3px 3px 0 rgba(0,0,0,0.25);
+    margin-top: 4px;
+    transform: rotate(-1deg);
+  }
+
+  .card {
+    background: var(--ui-card);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    z-index: 2;
+    max-width: 420px;
+    width: 100%;
+  }
+
+  .name-input {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 18px;
+    border: 3px solid var(--andy-blue);
+    border-radius: 12px;
+    outline: none;
+    font-weight: 600;
+    text-align: center;
+    background: #f5faff;
+  }
+  .name-input:focus { border-color: var(--woody-red); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 22px;
+    border: none;
+    border-radius: 14px;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+    transition: transform 0.1s;
+    text-transform: uppercase;
+  }
+  .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+  .btn-primary { background: var(--woody-red); color: #fff; }
+  .btn-buzz    { background: var(--buzz-green); color: #fff; }
+  .btn-woody   { background: var(--woody-yellow); color: #3a2b10; }
+  .btn-ghost   { background: rgba(255,255,255,0.2); color: #fff; border: 2px solid rgba(255,255,255,0.5); box-shadow: none; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+  .muted { color: #566; font-size: 14px; }
+
+  /* ---------- HUD ---------- */
+  #hud {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    padding: env(safe-area-inset-top, 10px) 12px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    z-index: 5;
+    pointer-events: none;
+  }
+  .hud-pill {
+    background: rgba(255,255,255,0.9);
+    border-radius: 14px;
+    padding: 8px 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    font-weight: 700;
+    display: flex; flex-direction: column; align-items: center;
+    min-width: 70px;
+    pointer-events: auto;
+  }
+  .hud-pill .label { font-size: 10px; letter-spacing: 1.5px; color: #667; text-transform: uppercase; }
+  .hud-pill .value { font-size: 20px; line-height: 1; }
+  .hud-pill.big .value { font-size: 22px; color: var(--woody-red); }
+
+  #hole-banner {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    background: var(--woody-yellow);
+    padding: 14px 28px;
+    border-radius: 20px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 11;
+    transition: opacity 0.35s, transform 0.35s;
+    text-align: center;
+    border: 4px solid #fff;
+  }
+  #hole-banner.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  #hole-banner .hole-num {
+    font-family: "Impact", sans-serif;
+    font-size: 42px;
+    color: var(--woody-red);
+    line-height: 1;
+  }
+  #hole-banner .hole-name {
+    font-size: 22px;
+    font-weight: 800;
+    color: #3a2b10;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  #hole-banner .hole-par {
+    font-size: 14px;
+    color: #6b4628;
+    margin-top: 4px;
+    letter-spacing: 2px;
+  }
+
+  /* ---------- Aim Indicator ---------- */
+  #power-meter {
+    position: absolute;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 6;
+    width: min(320px, 80vw);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  #power-meter.show { opacity: 1; }
+  #power-meter .bar-bg {
+    height: 12px;
+    background: rgba(255,255,255,0.6);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+    border: 2px solid #fff;
+  }
+  #power-meter .bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--buzz-green) 0%, var(--woody-yellow) 60%, var(--woody-red) 100%);
+    transition: width 0.05s;
+  }
+  #power-meter .label {
+    text-align: center;
+    color: #fff;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
+    font-size: 12px;
+    letter-spacing: 2px;
+    margin-top: 4px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  #hint {
+    position: absolute;
+    bottom: 80px; left: 50%;
+    transform: translateX(-50%);
+    color: #fff;
+    text-shadow: 1px 1px 4px rgba(0,0,0,0.6);
+    background: rgba(0,0,0,0.3);
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    z-index: 6;
+    pointer-events: none;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:0.7;} 50%{opacity:1;} }
+
+  /* ---------- Hole complete / final screen ---------- */
+  #hole-complete, #final-screen, #leaderboard-screen {
+    background: rgba(10, 20, 40, 0.7);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    flex-direction: column;
+    padding: 20px;
+  }
+  #hole-complete .card, #final-screen .card, #leaderboard-screen .card { text-align: center; }
+  .result-title {
+    font-family: "Impact", sans-serif;
+    font-size: 40px;
+    color: var(--woody-red);
+    letter-spacing: 2px;
+    line-height: 1;
+    margin: 4px 0 10px;
+  }
+  .result-emoji { font-size: 56px; line-height: 1; }
+  .result-stat { margin: 16px 0; font-size: 16px; }
+  .result-stat b { font-size: 32px; color: var(--woody-red); display: block; }
+
+  .scorecard { width: 100%; border-collapse: collapse; margin: 10px 0 16px; }
+  .scorecard th, .scorecard td {
+    padding: 8px 4px;
+    text-align: center;
+    border-bottom: 1px solid #e2e7ef;
+    font-size: 14px;
+  }
+  .scorecard th { background: var(--andy-blue); color: #fff; font-weight: 800; }
+  .scorecard td.par-row { background: #f4f7fb; font-weight: 700; color: #667; }
+  .scorecard .total { font-weight: 900; color: var(--woody-red); background: #fff5ee; }
+  .scorecard td.eagle { background: #ffe9a8; color: #8a5c00; font-weight: 800; }
+  .scorecard td.birdie { background: #d6f5d6; color: #2a7a2a; font-weight: 800; }
+  .scorecard td.bogey { background: #fde2df; color: #8a2a2a; font-weight: 700; }
+
+  .leaderboard { width: 100%; list-style: none; padding: 0; margin: 10px 0 16px; }
+  .leaderboard li {
+    display: grid;
+    grid-template-columns: 36px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #f4f7fb;
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+  .leaderboard li.gold   { background: linear-gradient(90deg, #fff0c2, #ffe485); }
+  .leaderboard li.silver { background: linear-gradient(90deg, #eef1f5, #d6dde6); }
+  .leaderboard li.bronze { background: linear-gradient(90deg, #fde3c7, #f7bf8a); }
+  .leaderboard li.you    { outline: 3px solid var(--woody-red); }
+  .leaderboard .rank { font-family: "Impact", sans-serif; font-size: 22px; color: var(--woody-red); text-align: center; }
+  .leaderboard .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .leaderboard .score { font-size: 20px; color: var(--woody-red); font-family: "Impact", sans-serif; }
+
+  .qr-note {
+    color: #fff; font-size: 12px; margin-top: 12px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    text-align: center;
+  }
+
+  #toast {
+    position: absolute;
+    top: 80px; left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: var(--woody-red);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 999px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 20;
+    box-shadow: var(--shadow-lg);
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 420px) {
+    .title-logo .main { font-size: 64px; }
+    .hud-pill { padding: 6px 10px; min-width: 56px; }
+    .hud-pill .value { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="game-canvas"></canvas>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div class="hud-pill">
+    <div class="label">Hole</div>
+    <div class="value" id="hud-hole">1/5</div>
+  </div>
+  <div class="hud-pill big">
+    <div class="label">Strokes</div>
+    <div class="value" id="hud-strokes">0</div>
+  </div>
+  <div class="hud-pill">
+    <div class="label">Total</div>
+    <div class="value" id="hud-total">0</div>
+  </div>
+</div>
+
+<!-- Power meter -->
+<div id="power-meter">
+  <div class="bar-bg"><div class="bar-fill" id="power-fill"></div></div>
+  <div class="label">Drag to aim • Release to putt</div>
+</div>
+
+<div id="hint" class="hidden">👆 Touch the ball and drag back to aim</div>
+
+<div id="hole-banner">
+  <div class="hole-num" id="banner-num">HOLE 1</div>
+  <div class="hole-name" id="banner-name">Andy's Room</div>
+  <div class="hole-par" id="banner-par">PAR 3</div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Title screen -->
+<div class="overlay active" id="title-screen">
+  <div class="clouds"></div>
+  <div class="title-logo">
+    <div class="top">★ ANDY'S ★</div>
+    <div class="main">TOY&nbsp;STORY</div>
+    <div class="sub">MINI&nbsp;GOLF</div>
+  </div>
+  <div class="card">
+    <div style="font-weight:800; margin-bottom: 8px; color: var(--buzz-purple);">Enter your name, partner</div>
+    <input id="player-name" class="name-input" type="text" maxlength="14" placeholder="Your name" autocomplete="off" />
+    <div style="height:12px"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-start">▶ Play</button>
+      <button class="btn btn-woody" id="btn-leaderboard">🏆 Scores</button>
+    </div>
+    <div class="muted" style="margin-top:10px;">5 holes • Best score wins • Team event edition</div>
+  </div>
+  <div class="qr-note">"Reach for the sky!" — To the fairway and beyond 🚀</div>
+</div>
+
+<!-- Hole complete screen -->
+<div class="overlay" id="hole-complete">
+  <div class="card">
+    <div class="result-emoji" id="hc-emoji">🎉</div>
+    <div class="result-title" id="hc-title">HOLE IN ONE!</div>
+    <div class="result-stat">
+      <b id="hc-strokes">1</b>
+      <span id="hc-note">Strokes on this hole</span>
+    </div>
+    <button class="btn btn-primary" id="btn-next-hole">Next Hole →</button>
+  </div>
+</div>
+
+<!-- Final screen -->
+<div class="overlay" id="final-screen">
+  <div class="card">
+    <div class="result-emoji">🏆</div>
+    <div class="result-title" id="final-title">GREAT ROUND!</div>
+    <div class="muted" id="final-player">Player</div>
+    <div class="result-stat">
+      <b id="final-total">0</b>
+      <span>Total strokes vs Par <span id="final-par">15</span></span>
+    </div>
+    <table class="scorecard" id="final-scorecard"></table>
+    <div class="btn-row">
+      <button class="btn btn-buzz" id="btn-view-scores">🏆 Leaderboard</button>
+      <button class="btn btn-woody" id="btn-play-again">↻ Play Again</button>
+    </div>
+  </div>
+</div>
+
+<!-- Leaderboard -->
+<div class="overlay" id="leaderboard-screen">
+  <div class="card">
+    <div class="result-emoji">🏆</div>
+    <div class="result-title">LEADERBOARD</div>
+    <div class="muted">Lowest total strokes wins</div>
+    <ol class="leaderboard" id="lb-list"></ol>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-lb-back">← Back</button>
+      <button class="btn btn-ghost" id="btn-clear-scores" style="color:#666; border-color:#ccc;">Clear</button>
+    </div>
+  </div>
+</div>
+
+<!-- Three.js via importmap -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* =========================================================
+   CONFIG
+   ========================================================= */
+const BALL_RADIUS = 0.35;
+const FRICTION = 0.988;           // velocity multiplier per frame
+const MIN_VELOCITY = 0.02;
+const MAX_POWER = 0.55;           // max initial speed
+const POWER_DRAG_DISTANCE = 240;  // pixels for max power
+const WALL_BOUNCE = 0.72;
+const HOLE_RADIUS = 0.55;
+const HOLE_CAPTURE_SPEED = 0.45;  // speed below which ball falls into hole
+
+/* =========================================================
+   COURSE DEFINITIONS (5 Toy Story themed holes)
+   Layout: z-axis points "forward" (toward hole), x is side-to-side.
+   Hole 1 faithfully mimics the team's real-world build.
+   Walls: AABB {x, z, w, d, h, kind}; borders are LEGO-stacked.
+   ========================================================= */
+const LEGO_COLORS = [0xd62828, 0xf6c026, 0x2a9d3f, 0x2a72d9, 0xe84aa5, 0xf39e1b, 0xffffff];
+
+const COURSES = [
+  {
+    // Hole 9 from the team's course — Toy Story Room
+    name: "Andy's Toy Box",
+    theme: 'toybox',
+    par: 3,
+    floorColor: 0xd9b98a,   // cardboard tan
+    borderStyle: 'lego',
+    size: { w: 7.5, d: 20 },
+    tee: { x: 0, z: -8.5 },
+    hole: { x: 0, z: 8.3 },
+    walls: [
+      // Buzz Lightyear (left obstacle, mid-course)
+      { x: -1.7, z: -1.5, w: 1.2, d: 1.2, h: 1.6, kind: 'buzzProp' },
+      // Slinky Dog (right obstacle, mid-course)
+      { x:  1.7, z:  1.8, w: 1.8, d: 0.9, h: 0.8, kind: 'slinkyProp' },
+      // Barrel of Monkeys (center-back, horizontal barrel)
+      { x: 0, z: 4.0, w: 2.8, d: 0.9, h: 0.9, kind: 'barrelMonkeys' },
+      // LEGO stepped pyramid (center-front obstacle)
+      { x: 0.2, z: -0.5, w: 1.2, d: 1.2, h: 0.6, kind: 'legoPyramid' },
+    ],
+    props: [
+      // Woody on a pedestal (back right decorative)
+      { type: 'woodyPedestal', x:  2.4, z: 7.6, rot: -0.2 },
+      // Little toy kitchen (back left decorative)
+      { type: 'kitchen',       x: -2.3, z: 7.6, rot: 0.25 },
+    ],
+    backdrop: 'toystory',
+    sky: 0xbfe4f5,
+  },
+  {
+    name: "Pizza Planet",
+    theme: 'pizza',
+    par: 3,
+    floorColor: 0xd9b98a,
+    borderStyle: 'lego',
+    size: { w: 8, d: 20 },
+    tee: { x: -2.5, z: -8 },
+    hole: { x: 2.5, z: 8 },
+    walls: [
+      { x: -1, z: -2, w: 5.2, d: 0.8, h: 0.9, kind: 'legoWall' },
+      { x:  1, z:  3, w: 5.2, d: 0.8, h: 0.9, kind: 'legoWall' },
+    ],
+    props: [
+      { type: 'alien', x: -3,   z:  0,   rot: 0 },
+      { type: 'alien', x:  3,   z:  1.5, rot: 0.3 },
+      { type: 'alien', x:  0,   z:  6.8, rot: 0 },
+      { type: 'alien', x:  2,   z:  7.4, rot: -0.3 },
+    ],
+    backdrop: 'space',
+    sky: 0x2d1b4e,
+  },
+  {
+    name: "Slinky Sprint",
+    theme: 'slinky',
+    par: 4,
+    floorColor: 0xd9b98a,
+    borderStyle: 'lego',
+    size: { w: 9, d: 22 },
+    tee: { x: 0, z: -9 },
+    hole: { x: 0, z: 9 },
+    walls: [
+      { x: -2.2, z: -3, w: 0.9, d: 3.5, h: 0.9, kind: 'legoWall' },
+      { x:  2.2, z: -3, w: 0.9, d: 3.5, h: 0.9, kind: 'legoWall' },
+      { x: -1.6, z:  3, w: 0.9, d: 3.5, h: 0.9, kind: 'legoWall' },
+      { x:  1.6, z:  3, w: 0.9, d: 3.5, h: 0.9, kind: 'legoWall' },
+      { x:  0,   z:  0, w: 1.4, d: 1.4, h: 0.8, kind: 'barrelMonkeys' },
+    ],
+    props: [
+      { type: 'slinky', x: -3.2, z: 6, rot: 0.2 },
+      { type: 'army',   x:  3.2, z: -2, rot: -0.3 },
+      { type: 'army',   x: -3.2, z: -2, rot: 0.3 },
+      { type: 'army',   x:  3.2, z: 6, rot: 0.1 },
+    ],
+    backdrop: 'andysroom',
+    sky: 0xbfe4f5,
+  },
+  {
+    name: "Army Ops",
+    theme: 'army',
+    par: 3,
+    floorColor: 0xd9b98a,
+    borderStyle: 'lego',
+    size: { w: 8, d: 19 },
+    tee: { x: 0, z: -7.5 },
+    hole: { x: 0, z: 7.5 },
+    walls: [
+      { x: -1.8, z: 0, w: 2.2, d: 0.8, h: 0.9, kind: 'legoWall' },
+      { x:  1.8, z: 3, w: 2.2, d: 0.8, h: 0.9, kind: 'legoWall' },
+      { x: -1.8, z: 5, w: 2.2, d: 0.8, h: 0.9, kind: 'legoWall' },
+    ],
+    props: [
+      { type: 'army', x: -3, z: -4, rot: 0.2 },
+      { type: 'army', x:  3, z: -4, rot: -0.2 },
+      { type: 'army', x: -3, z:  7, rot: 0.1 },
+      { type: 'army', x:  3, z:  7, rot: -0.1 },
+      { type: 'rex',  x:  0, z: -1.6, rot: Math.PI },
+    ],
+    backdrop: 'andysroom',
+    sky: 0xbfe4f5,
+  },
+  {
+    name: "To Infinity!",
+    theme: 'buzz',
+    par: 4,
+    floorColor: 0xd9b98a,
+    borderStyle: 'lego',
+    size: { w: 9, d: 24 },
+    tee: { x: 0, z: -10 },
+    hole: { x: 0, z: 10 },
+    walls: [
+      { x: -1.8, z: -5, w: 1.4, d: 1.4, h: 1.0, kind: 'legoPyramid' },
+      { x:  1.8, z: -1, w: 1.4, d: 1.4, h: 1.0, kind: 'legoPyramid' },
+      { x: -1.8, z:  3, w: 1.4, d: 1.4, h: 1.0, kind: 'legoPyramid' },
+      { x:  1.8, z:  7, w: 1.4, d: 1.4, h: 1.0, kind: 'legoPyramid' },
+    ],
+    props: [
+      { type: 'buzz',  x:  3, z: 8.5, rot: -0.4 },
+      { type: 'woodyPedestal', x: -3, z: 8.5, rot: 0.4 },
+      { type: 'star',  x: -3, z: -6 },
+      { type: 'star',  x:  3, z: -4 },
+      { type: 'star',  x: -3.5, z: 1 },
+      { type: 'star',  x:  3.5, z: 5 },
+    ],
+    backdrop: 'space',
+    sky: 0x0f1a45,
+  },
+];
+
+/* =========================================================
+   GAME STATE
+   ========================================================= */
+const state = {
+  playerName: 'Partner',
+  holeIndex: 0,
+  strokes: [],           // strokes per hole
+  currentStrokes: 0,
+  phase: 'title',        // title | aim | rolling | holeComplete | final
+  ballPos: new THREE.Vector3(),
+  ballVel: new THREE.Vector3(),
+  aim: { active: false, startX: 0, startY: 0, dx: 0, dy: 0 },
+  shot: null,            // {dir: Vector3, power: 0-1}
+  course: null,
+  walls: [],             // AABB walls for physics
+  holeWorld: new THREE.Vector3(),
+};
+
+/* =========================================================
+   THREE.JS SETUP
+   ========================================================= */
+const canvas = document.getElementById('game-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x8dd3f4, 20, 80);
+
+const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 200);
+const cameraTarget = new THREE.Vector3();
+const cameraOffset = new THREE.Vector3(0, 12, -11);
+
+function resize() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Lighting
+const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+scene.add(ambient);
+
+const sun = new THREE.DirectionalLight(0xfff3d6, 1.1);
+sun.position.set(8, 18, -6);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.left = -15;
+sun.shadow.camera.right = 15;
+sun.shadow.camera.top = 15;
+sun.shadow.camera.bottom = -15;
+sun.shadow.camera.near = 1;
+sun.shadow.camera.far = 50;
+sun.shadow.bias = -0.0005;
+scene.add(sun);
+
+const hemi = new THREE.HemisphereLight(0xcde7ff, 0x6b8e4e, 0.45);
+scene.add(hemi);
+
+/* =========================================================
+   REUSABLE GEOMETRY / HELPERS
+   ========================================================= */
+const BALL_GEO = new THREE.SphereGeometry(BALL_RADIUS, 24, 18);
+const BALL_MAT = new THREE.MeshStandardMaterial({
+  color: 0xffffff, roughness: 0.4, metalness: 0.05,
+  emissive: 0x222222, emissiveIntensity: 0.08,
+});
+const ball = new THREE.Mesh(BALL_GEO, BALL_MAT);
+ball.castShadow = true;
+ball.receiveShadow = false;
+scene.add(ball);
+
+// Aim arrow (flat arrow on ground behind ball)
+const arrowGroup = new THREE.Group();
+scene.add(arrowGroup);
+{
+  const shape = new THREE.Shape();
+  shape.moveTo(-0.25, 0);
+  shape.lineTo(0.25, 0);
+  shape.lineTo(0.25, 2.0);
+  shape.lineTo(0.55, 2.0);
+  shape.lineTo(0, 2.7);
+  shape.lineTo(-0.55, 2.0);
+  shape.lineTo(-0.25, 2.0);
+  shape.lineTo(-0.25, 0);
+  const geo = new THREE.ShapeGeometry(shape);
+  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.rotation.x = -Math.PI / 2;
+  arrowGroup.add(mesh);
+
+  const outlineMat = new THREE.MeshBasicMaterial({ color: 0xd34a3c, transparent: true, opacity: 0.9 });
+  const outline = new THREE.Mesh(geo, outlineMat);
+  outline.rotation.x = -Math.PI / 2;
+  outline.position.y = -0.01;
+  outline.scale.set(1.15, 1.0, 1.15);
+  arrowGroup.add(outline);
+}
+arrowGroup.visible = false;
+
+// Course root (cleared and rebuilt each hole)
+const courseRoot = new THREE.Group();
+scene.add(courseRoot);
+
+/* =========================================================
+   BUILD COURSE
+   ========================================================= */
+function buildCourse(course) {
+  // Clear previous
+  while (courseRoot.children.length) {
+    const c = courseRoot.children.pop();
+    c.traverse?.(o => {
+      o.geometry?.dispose?.();
+      if (o.material) {
+        if (Array.isArray(o.material)) o.material.forEach(m => m.dispose());
+        else o.material.dispose();
+      }
+    });
+  }
+  state.walls = [];
+
+  scene.background = new THREE.Color(course.sky);
+  scene.fog.color.set(course.sky);
+
+  const W = course.size.w, D = course.size.d;
+
+  // --- Floor (fairway) ---
+  const floor = new THREE.Mesh(
+    new THREE.BoxGeometry(W, 0.4, D),
+    new THREE.MeshStandardMaterial({ color: course.floorColor, roughness: 0.9 })
+  );
+  floor.position.y = -0.2;
+  floor.receiveShadow = true;
+  courseRoot.add(floor);
+
+  // Tee area marker (small circle at tee position)
+  const teeMark = new THREE.Mesh(
+    new THREE.CircleGeometry(0.8, 24),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 })
+  );
+  teeMark.rotation.x = -Math.PI / 2;
+  teeMark.position.set(course.tee.x, 0.01, course.tee.z);
+  courseRoot.add(teeMark);
+
+  // --- Perimeter walls (LEGO/DUPLO stacked blocks, like the real course) ---
+  const wallT = 0.55;   // physical wall thickness (2 studs wide feel)
+  const wallH = 0.9;    // physical wall height for collision
+  if (course.borderStyle === 'lego') {
+    buildLegoBorder(courseRoot, W, D, wallT, state.walls);
+  } else {
+    const borderMat = new THREE.MeshStandardMaterial({ color: course.borderColor, roughness: 0.8 });
+    const makeBorder = (x, z, w, d) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, wallH, d), borderMat);
+      m.position.set(x, wallH/2, z);
+      m.castShadow = true; m.receiveShadow = true;
+      courseRoot.add(m);
+      state.walls.push({ x, z, w, d });
+    };
+    makeBorder(0,  D/2 + wallT/2 - 0.01, W + wallT*2, wallT);
+    makeBorder(0, -D/2 - wallT/2 + 0.01, W + wallT*2, wallT);
+    makeBorder(W/2 + wallT/2 - 0.01, 0, wallT, D);
+    makeBorder(-W/2 - wallT/2 + 0.01, 0, wallT, D);
+  }
+
+  // --- Toy Story backdrop at far end ---
+  if (course.backdrop) {
+    courseRoot.add(buildBackdropPanel(course.backdrop, W, D));
+  }
+
+  // --- Inner walls ---
+  for (const w of course.walls) {
+    const wall = buildWall(w);
+    courseRoot.add(wall);
+    state.walls.push({ x: w.x, z: w.z, w: w.w, d: w.d });
+  }
+
+  // --- Hole ---
+  const holeGroup = buildHole(course.hole.x, course.hole.z);
+  courseRoot.add(holeGroup);
+  state.holeWorld.set(course.hole.x, 0, course.hole.z);
+
+  // --- Props ---
+  for (const p of (course.props || [])) {
+    const mesh = buildProp(p);
+    if (mesh) courseRoot.add(mesh);
+  }
+
+  // --- Background / theme decoration ---
+  buildBackdrop(course);
+}
+
+function buildWall(w) {
+  switch (w.kind) {
+    case 'legoWall':      return buildLegoWall(w);
+    case 'legoPyramid':   return buildLegoPyramidObstacle(w);
+    case 'barrelMonkeys': return buildBarrelOfMonkeys(w);
+    case 'buzzProp':      return buildBuzzObstacle(w);
+    case 'slinkyProp':    return buildSlinkyObstacle(w);
+  }
+  // Fallback generic wall
+  const g = new THREE.Group();
+  const m = new THREE.Mesh(
+    new THREE.BoxGeometry(w.w, w.h, w.d),
+    new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.8 })
+  );
+  m.position.set(w.x, w.h/2, w.z);
+  m.castShadow = true; m.receiveShadow = true;
+  g.add(m);
+  return g;
+}
+
+/* ---------- LEGO / DUPLO builders ---------- */
+// Single DUPLO-style block with 4 studs on top
+function buildDuploBlock(size, color) {
+  // size = {w, h, d} of block body
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(size.w, size.h, size.d),
+    new THREE.MeshStandardMaterial({ color, roughness: 0.35, metalness: 0.05 })
+  );
+  body.castShadow = true; body.receiveShadow = true;
+  g.add(body);
+  // Studs — 2x2 grid, scaled to block size
+  const nx = Math.max(1, Math.round(size.w / 0.45));
+  const nz = Math.max(1, Math.round(size.d / 0.45));
+  const studR = Math.min(0.13, Math.min(size.w, size.d) / (Math.max(nx, nz) * 2.6));
+  const studH = 0.08;
+  const studGeo = new THREE.CylinderGeometry(studR, studR, studH, 12);
+  const studMat = new THREE.MeshStandardMaterial({ color, roughness: 0.35, metalness: 0.05 });
+  for (let ix = 0; ix < nx; ix++) {
+    for (let iz = 0; iz < nz; iz++) {
+      const sx = -size.w/2 + (ix + 0.5) * size.w/nx;
+      const sz = -size.d/2 + (iz + 0.5) * size.d/nz;
+      const stud = new THREE.Mesh(studGeo, studMat);
+      stud.position.set(sx, size.h/2 + studH/2, sz);
+      stud.castShadow = true;
+      g.add(stud);
+    }
+  }
+  return g;
+}
+
+// Perimeter border made of stacked DUPLO blocks along all 4 sides
+function buildLegoBorder(root, W, D, wallT, wallsOut) {
+  const block = { w: 1.0, h: 0.55, d: wallT };          // one brick
+  const rows = 2;                                         // stacked 2 high
+  const sides = [
+    // long sides (parallel to x)
+    { len: W + wallT*2, x0: -(W + wallT*2)/2 + block.w/2, z: -D/2 - wallT/2, axis: 'x' },
+    { len: W + wallT*2, x0: -(W + wallT*2)/2 + block.w/2, z:  D/2 + wallT/2, axis: 'x' },
+    // short sides (parallel to z)
+    { len: D,            z0: -D/2 + block.w/2,            x: -W/2 - wallT/2, axis: 'z' },
+    { len: D,            z0: -D/2 + block.w/2,            x:  W/2 + wallT/2, axis: 'z' },
+  ];
+  for (const side of sides) {
+    const count = Math.ceil(side.len / block.w);
+    const step = side.len / count;
+    for (let i = 0; i < count; i++) {
+      for (let r = 0; r < rows; r++) {
+        const color = LEGO_COLORS[(i + r*3 + (side.axis === 'z' ? 2 : 0)) % LEGO_COLORS.length];
+        const b = buildDuploBlock({ w: step, h: block.h, d: block.d }, color);
+        if (side.axis === 'x') {
+          b.position.set(side.x0 + i*step, r*block.h + block.h/2, side.z);
+        } else {
+          b.rotation.y = Math.PI/2;
+          b.position.set(side.x, r*block.h + block.h/2, side.z0 + i*step);
+        }
+        root.add(b);
+      }
+    }
+    // Add collision wall covering both rows
+    if (side.axis === 'x') {
+      wallsOut.push({ x: side.x0 + side.len/2 - block.w/2, z: side.z, w: side.len, d: block.d });
+    } else {
+      wallsOut.push({ x: side.x, z: side.z0 + side.len/2 - block.w/2, w: block.d, d: side.len });
+    }
+  }
+}
+
+// Inner LEGO wall obstacle
+function buildLegoWall(w) {
+  const g = new THREE.Group();
+  const blockW = 1.0;
+  const blockH = 0.45;
+  const rows = Math.max(1, Math.round(w.h / blockH));
+  if (w.w >= w.d) {
+    // horizontal wall (along x)
+    const count = Math.max(1, Math.round(w.w / blockW));
+    const step = w.w / count;
+    for (let i = 0; i < count; i++) {
+      for (let r = 0; r < rows; r++) {
+        const color = LEGO_COLORS[(i + r*2) % LEGO_COLORS.length];
+        const b = buildDuploBlock({ w: step, h: blockH, d: w.d }, color);
+        b.position.set(w.x - w.w/2 + (i + 0.5)*step, r*blockH + blockH/2, w.z);
+        g.add(b);
+      }
+    }
+  } else {
+    const count = Math.max(1, Math.round(w.d / blockW));
+    const step = w.d / count;
+    for (let i = 0; i < count; i++) {
+      for (let r = 0; r < rows; r++) {
+        const color = LEGO_COLORS[(i + r*2) % LEGO_COLORS.length];
+        const b = buildDuploBlock({ w: w.w, h: blockH, d: step }, color);
+        b.position.set(w.x, r*blockH + blockH/2, w.z - w.d/2 + (i + 0.5)*step);
+        g.add(b);
+      }
+    }
+  }
+  return g;
+}
+
+// Stepped LEGO pyramid obstacle
+function buildLegoPyramidObstacle(w) {
+  const g = new THREE.Group();
+  const steps = 3;
+  const blockH = 0.35;
+  for (let s = 0; s < steps; s++) {
+    const t = 1 - s / steps;
+    const sw = w.w * t;
+    const sd = w.d * t;
+    const color = [0x2a9d3f, 0xf6c026, 0xd62828, 0x2a72d9][s % 4];
+    const b = buildDuploBlock({ w: sw, h: blockH, d: sd }, color);
+    b.position.set(w.x, s*blockH + blockH/2, w.z);
+    g.add(b);
+  }
+  return g;
+}
+
+/* ---------- Barrel of Monkeys (horizontal striped barrel) ---------- */
+function buildBarrelOfMonkeys(w) {
+  const g = new THREE.Group();
+  const len = w.w;
+  const rad = w.h / 2;
+  // Yellow barrel
+  const barrel = new THREE.Mesh(
+    new THREE.CylinderGeometry(rad, rad, len, 20),
+    new THREE.MeshStandardMaterial({ color: 0xf7b52d, roughness: 0.6 })
+  );
+  barrel.rotation.z = Math.PI / 2;
+  barrel.position.set(w.x, rad, w.z);
+  barrel.castShadow = true; barrel.receiveShadow = true;
+  g.add(barrel);
+  // Colored rings (red/orange stripes)
+  const ringColors = [0xd62828, 0xff8a1c, 0xd62828, 0xff8a1c];
+  for (let i = 0; i < ringColors.length; i++) {
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(rad * 1.02, 0.06, 8, 20),
+      new THREE.MeshStandardMaterial({ color: ringColors[i], roughness: 0.5 })
+    );
+    ring.rotation.y = Math.PI / 2;
+    ring.position.set(w.x - len/2 + (i + 1) * len / (ringColors.length + 1), rad, w.z);
+    g.add(ring);
+  }
+  // End caps
+  for (const side of [-1, 1]) {
+    const cap = new THREE.Mesh(
+      new THREE.CylinderGeometry(rad * 1.02, rad * 1.02, 0.08, 20),
+      new THREE.MeshStandardMaterial({ color: 0xc98a18, roughness: 0.6 })
+    );
+    cap.rotation.z = Math.PI / 2;
+    cap.position.set(w.x + side * len/2, rad, w.z);
+    g.add(cap);
+  }
+  // Dangling monkey (small brown arc on top)
+  const monkey = new THREE.Mesh(
+    new THREE.TorusGeometry(0.18, 0.05, 6, 12, Math.PI),
+    new THREE.MeshStandardMaterial({ color: 0x6b4628, roughness: 0.8 })
+  );
+  monkey.rotation.x = Math.PI;
+  monkey.position.set(w.x, rad + 0.2, w.z);
+  g.add(monkey);
+  return g;
+}
+
+/* ---------- In-fairway obstacle props (Buzz / Slinky) ---------- */
+function buildBuzzObstacle(w) {
+  const buzz = buildBuzz();
+  buzz.position.set(w.x, 0, w.z);
+  buzz.scale.set(1.1, 1.1, 1.1);
+  buzz.rotation.y = Math.PI; // facing the player
+  return buzz;
+}
+function buildSlinkyObstacle(w) {
+  const slinky = buildSlinky();
+  slinky.position.set(w.x, 0, w.z);
+  slinky.rotation.y = -Math.PI / 2; // sideways across fairway
+  return slinky;
+}
+
+/* ---------- Woody on pedestal (decorative) ---------- */
+function buildWoodyPedestal() {
+  const g = new THREE.Group();
+  // Pedestal: 2 stacked LEGO blocks
+  const a = buildDuploBlock({ w: 0.9, h: 0.45, d: 0.9 }, 0x2a72d9);
+  a.position.y = 0.225;
+  g.add(a);
+  const b = buildDuploBlock({ w: 0.8, h: 0.45, d: 0.8 }, 0xd62828);
+  b.position.y = 0.45 + 0.225 + 0.04;
+  g.add(b);
+  const woody = buildWoody();
+  woody.position.y = 0.9 + 0.08;
+  g.add(woody);
+  return g;
+}
+
+/* ---------- Tiny play kitchen (decorative) ---------- */
+function buildKitchen() {
+  const g = new THREE.Group();
+  const base = new THREE.Mesh(
+    new THREE.BoxGeometry(0.9, 0.4, 0.5),
+    new THREE.MeshStandardMaterial({ color: 0xf4f4f0, roughness: 0.8 })
+  );
+  base.position.y = 0.2;
+  base.castShadow = true;
+  g.add(base);
+  // stovetop (red)
+  const stove = new THREE.Mesh(
+    new THREE.BoxGeometry(0.85, 0.04, 0.45),
+    new THREE.MeshStandardMaterial({ color: 0xd62828 })
+  );
+  stove.position.y = 0.42;
+  g.add(stove);
+  // Burners
+  for (const sx of [-0.2, 0.2]) {
+    for (const sz of [-0.1, 0.12]) {
+      const b = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.07, 0.07, 0.02, 12),
+        new THREE.MeshStandardMaterial({ color: 0x222222 })
+      );
+      b.position.set(sx, 0.45, sz);
+      g.add(b);
+    }
+  }
+  // Back panel with knobs
+  const back = new THREE.Mesh(
+    new THREE.BoxGeometry(0.9, 0.35, 0.06),
+    new THREE.MeshStandardMaterial({ color: 0xf6c026 })
+  );
+  back.position.set(0, 0.6, -0.22);
+  g.add(back);
+  // Knobs
+  for (const sx of [-0.3, -0.1, 0.1, 0.3]) {
+    const k = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.04, 0.04, 10),
+      new THREE.MeshStandardMaterial({ color: 0x2a72d9 })
+    );
+    k.rotation.x = Math.PI / 2;
+    k.position.set(sx, 0.6, -0.19);
+    g.add(k);
+  }
+  // Small "pan" + colorful balls
+  const pan = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.12, 0.12, 0.04, 14),
+    new THREE.MeshStandardMaterial({ color: 0x333333 })
+  );
+  pan.position.set(0.3, 0.46, 0.15);
+  g.add(pan);
+  const colors = [0xd62828, 0x2a9d3f, 0xf6c026];
+  for (let i = 0; i < 3; i++) {
+    const ball = new THREE.Mesh(
+      new THREE.SphereGeometry(0.05, 10, 10),
+      new THREE.MeshStandardMaterial({ color: colors[i] })
+    );
+    ball.position.set(0.25 + i*0.05, 0.52, 0.15);
+    g.add(ball);
+  }
+  return g;
+}
+
+/* ---------- Toy Story themed backdrop panel ---------- */
+function buildBackdropPanel(kind, W, D) {
+  const g = new THREE.Group();
+  const panelW = W + 2.0;
+  const panelH = 5.5;
+  // Background (clouds sky)
+  const canvasTex = makeBackdropTexture(kind);
+  const mat = new THREE.MeshBasicMaterial({ map: canvasTex });
+  const panel = new THREE.Mesh(new THREE.PlaneGeometry(panelW, panelH), mat);
+  panel.position.set(0, panelH/2 - 0.3, D/2 + 0.5);
+  panel.rotation.y = Math.PI;  // facing back toward player
+  g.add(panel);
+  return g;
+}
+
+function makeBackdropTexture(kind) {
+  const c = document.createElement('canvas');
+  c.width = 1024; c.height = 512;
+  const ctx = c.getContext('2d');
+  if (kind === 'toystory' || kind === 'andysroom') {
+    // Sky blue gradient
+    const grad = ctx.createLinearGradient(0, 0, 0, 512);
+    grad.addColorStop(0, '#7ec7ed');
+    grad.addColorStop(1, '#b5ddf0');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 1024, 512);
+    // Clouds
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    const drawCloud = (x, y, s) => {
+      ctx.beginPath();
+      ctx.ellipse(x, y, 60*s, 28*s, 0, 0, Math.PI*2);
+      ctx.ellipse(x-40*s, y+8*s, 36*s, 22*s, 0, 0, Math.PI*2);
+      ctx.ellipse(x+40*s, y+8*s, 36*s, 22*s, 0, 0, Math.PI*2);
+      ctx.ellipse(x, y-18*s, 40*s, 22*s, 0, 0, Math.PI*2);
+      ctx.fill();
+    };
+    for (let i = 0; i < 10; i++) {
+      drawCloud(80 + i*110 + (i%2)*30, 100 + (i%3)*80, 0.7 + (i%3)*0.15);
+    }
+    // Toy Story logo (stylized)
+    if (kind === 'toystory') {
+      ctx.save();
+      ctx.translate(512, 180);
+      // Yellow box behind
+      ctx.fillStyle = '#f6c026';
+      ctx.strokeStyle = '#d62828';
+      ctx.lineWidth = 10;
+      roundRect(ctx, -200, -80, 400, 160, 20, true, true);
+      // TOY
+      ctx.fillStyle = '#d62828';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 6;
+      ctx.font = 'bold 110px Impact, Arial Black, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.strokeText('TOY', 0, -15);
+      ctx.fillText('TOY', 0, -15);
+      // STORY
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#d62828';
+      ctx.font = 'bold 42px Impact, Arial Black, sans-serif';
+      ctx.strokeText('STORY', 0, 50);
+      ctx.fillText('STORY', 0, 50);
+      ctx.restore();
+    }
+  } else if (kind === 'space') {
+    // Space gradient
+    const grad = ctx.createLinearGradient(0, 0, 0, 512);
+    grad.addColorStop(0, '#0a0c3a');
+    grad.addColorStop(1, '#2d1b4e');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 1024, 512);
+    // Stars
+    ctx.fillStyle = '#fff';
+    for (let i = 0; i < 120; i++) {
+      ctx.globalAlpha = 0.3 + Math.random()*0.7;
+      ctx.beginPath();
+      ctx.arc(Math.random()*1024, Math.random()*512, Math.random()*2, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    // Planet
+    const pg = ctx.createRadialGradient(260, 360, 20, 260, 360, 120);
+    pg.addColorStop(0, '#ffb347');
+    pg.addColorStop(1, '#6a2a00');
+    ctx.fillStyle = pg;
+    ctx.beginPath(); ctx.arc(260, 360, 100, 0, Math.PI*2); ctx.fill();
+    // Saturn-ish ring
+    ctx.strokeStyle = 'rgba(255,200,100,0.6)';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.ellipse(780, 180, 110, 28, 0.3, 0, Math.PI*2);
+    ctx.stroke();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+  if (fill) ctx.fill();
+  if (stroke) ctx.stroke();
+}
+
+function buildHole(x, z) {
+  const g = new THREE.Group();
+  // Dark hole circle
+  const hole = new THREE.Mesh(
+    new THREE.CircleGeometry(HOLE_RADIUS, 32),
+    new THREE.MeshBasicMaterial({ color: 0x0a0a0a })
+  );
+  hole.rotation.x = -Math.PI / 2;
+  hole.position.set(x, 0.02, z);
+  g.add(hole);
+
+  // Woody sheriff star around the hole
+  const star = buildStar(HOLE_RADIUS * 1.9, 0xffd66b, 0x8a5a00);
+  star.position.set(x, 0.015, z);
+  g.add(star);
+
+  // Flag pole
+  const pole = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.035, 0.035, 2.2, 8),
+    new THREE.MeshStandardMaterial({ color: 0xffffff })
+  );
+  pole.position.set(x, 1.1, z);
+  pole.castShadow = true;
+  g.add(pole);
+
+  // Flag (red triangle with star)
+  const flagGeo = new THREE.BufferGeometry();
+  flagGeo.setAttribute('position', new THREE.Float32BufferAttribute([
+    0, 0, 0,  0.9, -0.2, 0,  0, -0.55, 0
+  ], 3));
+  flagGeo.setIndex([0,1,2]);
+  flagGeo.computeVertexNormals();
+  const flag = new THREE.Mesh(flagGeo, new THREE.MeshStandardMaterial({
+    color: 0xd34a3c, side: THREE.DoubleSide, roughness: 0.8,
+  }));
+  flag.position.set(x + 0.035, 2.05, z);
+  flag.castShadow = true;
+  flag.userData.flag = true;
+  g.add(flag);
+  return g;
+}
+
+function buildStar(radius, fillColor, outlineColor) {
+  const pts = [];
+  for (let i = 0; i < 10; i++) {
+    const r = (i % 2 === 0) ? radius : radius * 0.45;
+    const a = (i / 10) * Math.PI * 2 - Math.PI / 2;
+    pts.push(new THREE.Vector2(Math.cos(a)*r, Math.sin(a)*r));
+  }
+  const shape = new THREE.Shape(pts);
+  const geo = new THREE.ShapeGeometry(shape);
+  const mat = new THREE.MeshBasicMaterial({ color: fillColor, side: THREE.DoubleSide });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.rotation.x = -Math.PI / 2;
+  return mesh;
+}
+
+/* =========================================================
+   PROP / CHARACTER BUILDERS (stylized, low-poly)
+   ========================================================= */
+function buildProp(p) {
+  let mesh;
+  switch (p.type) {
+    case 'rex':            mesh = buildRex(); break;
+    case 'hamm':           mesh = buildHamm(); break;
+    case 'alien':          mesh = buildAlien(); break;
+    case 'slinky':         mesh = buildSlinky(); break;
+    case 'army':           mesh = buildArmy(); break;
+    case 'buzz':           mesh = buildBuzz(); break;
+    case 'woody':          mesh = buildWoody(); break;
+    case 'woodyPedestal':  mesh = buildWoodyPedestal(); break;
+    case 'kitchen':        mesh = buildKitchen(); break;
+    case 'star':           mesh = buildPropStar(); break;
+    case 'block':          mesh = buildBlockProp(p.letter); break;
+    default: return null;
+  }
+  mesh.position.set(p.x, 0, p.z);
+  mesh.rotation.y = p.rot || 0;
+  return mesh;
+}
+
+function M(geo, color, opts = {}) {
+  return new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+    color, roughness: opts.rough ?? 0.7, metalness: opts.metal ?? 0, ...opts
+  }));
+}
+
+function buildRex() {
+  // Green T-Rex: body, head, tail, legs
+  const g = new THREE.Group();
+  const body = M(new THREE.SphereGeometry(0.6, 12, 10), 0x7dcf54);
+  body.scale.set(1, 0.9, 1.4);
+  body.position.y = 0.7;
+  g.add(body);
+  const head = M(new THREE.SphereGeometry(0.4, 12, 10), 0x7dcf54);
+  head.position.set(0, 1.25, 0.7);
+  head.scale.set(1, 0.9, 1.2);
+  g.add(head);
+  const tail = M(new THREE.ConeGeometry(0.25, 0.9, 8), 0x7dcf54);
+  tail.rotation.x = Math.PI/2;
+  tail.position.set(0, 0.7, -0.85);
+  g.add(tail);
+  // Eyes
+  const eyeL = M(new THREE.SphereGeometry(0.08, 8, 8), 0xffffff);
+  eyeL.position.set(-0.15, 1.4, 1.0);
+  g.add(eyeL);
+  const eyeR = eyeL.clone(); eyeR.position.x = 0.15; g.add(eyeR);
+  const pupilL = M(new THREE.SphereGeometry(0.04, 6, 6), 0x000000);
+  pupilL.position.set(-0.15, 1.4, 1.07); g.add(pupilL);
+  const pupilR = pupilL.clone(); pupilR.position.x = 0.15; g.add(pupilR);
+  // Legs
+  for (const side of [-1, 1]) {
+    const leg = M(new THREE.BoxGeometry(0.2, 0.5, 0.25), 0x6bbe44);
+    leg.position.set(side*0.25, 0.25, 0.1);
+    g.add(leg);
+  }
+  g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }});
+  return g;
+}
+
+function buildHamm() {
+  // Pink piggy bank
+  const g = new THREE.Group();
+  const body = M(new THREE.SphereGeometry(0.6, 14, 10), 0xff9ec7);
+  body.scale.set(1.2, 0.95, 1);
+  body.position.y = 0.65;
+  g.add(body);
+  const snout = M(new THREE.CylinderGeometry(0.18, 0.2, 0.15, 12), 0xff7fb0);
+  snout.rotation.x = Math.PI/2;
+  snout.position.set(0, 0.7, 0.72);
+  g.add(snout);
+  // Ears
+  for (const s of [-1, 1]) {
+    const ear = M(new THREE.ConeGeometry(0.12, 0.22, 8), 0xff7fb0);
+    ear.position.set(s*0.3, 1.15, 0.1);
+    ear.rotation.z = s * 0.4;
+    g.add(ear);
+  }
+  // Coin slot
+  const slot = M(new THREE.BoxGeometry(0.3, 0.04, 0.04), 0x000000);
+  slot.position.set(0, 1.15, -0.2);
+  g.add(slot);
+  // Legs (short cylinders)
+  for (const [sx, sz] of [[-0.4,-0.3],[0.4,-0.3],[-0.4,0.3],[0.4,0.3]]) {
+    const leg = M(new THREE.CylinderGeometry(0.1, 0.1, 0.25, 8), 0xff7fb0);
+    leg.position.set(sx, 0.13, sz);
+    g.add(leg);
+  }
+  g.traverse(o => { if (o.isMesh) { o.castShadow = true; }});
+  return g;
+}
+
+function buildAlien() {
+  // Green 3-eyed alien (LGM)
+  const g = new THREE.Group();
+  const body = M(new THREE.CapsuleGeometry(0.35, 0.4, 6, 12), 0x6fd96a);
+  body.position.y = 0.55;
+  g.add(body);
+  const head = M(new THREE.SphereGeometry(0.38, 16, 14), 0x6fd96a);
+  head.position.y = 1.15;
+  g.add(head);
+  // Three eyes
+  for (const ex of [-0.22, 0, 0.22]) {
+    const eye = M(new THREE.SphereGeometry(0.1, 10, 10), 0xffffff);
+    eye.position.set(ex, 1.2, 0.32);
+    g.add(eye);
+    const p = M(new THREE.SphereGeometry(0.05, 8, 8), 0x000000);
+    p.position.set(ex, 1.2, 0.4);
+    g.add(p);
+  }
+  // Antenna
+  const ant = M(new THREE.CylinderGeometry(0.02, 0.02, 0.3, 6), 0x4aa049);
+  ant.position.y = 1.55;
+  g.add(ant);
+  const antBall = M(new THREE.SphereGeometry(0.06, 8, 8), 0xffff00, { emissive: 0xaaaa00, emissiveIntensity: 0.4 });
+  antBall.position.y = 1.72;
+  g.add(antBall);
+  // Collar (purple space suit collar)
+  const collar = M(new THREE.CylinderGeometry(0.35, 0.35, 0.08, 16), 0x5b2d9a);
+  collar.position.y = 0.93;
+  g.add(collar);
+  g.traverse(o => { if (o.isMesh) { o.castShadow = true; }});
+  return g;
+}
+
+function buildSlinky() {
+  // Slinky dog: brown dog head+tail with coiled body
+  const g = new THREE.Group();
+  // Front body
+  const front = M(new THREE.SphereGeometry(0.35, 12, 10), 0x8b5a2b);
+  front.scale.set(1.2, 0.9, 1.1);
+  front.position.set(0.6, 0.45, 0);
+  g.add(front);
+  // Head
+  const head = M(new THREE.SphereGeometry(0.3, 12, 10), 0x8b5a2b);
+  head.position.set(1.0, 0.65, 0);
+  head.scale.set(1, 0.9, 1.2);
+  g.add(head);
+  // Ears (floppy)
+  for (const s of [-1, 1]) {
+    const ear = M(new THREE.BoxGeometry(0.08, 0.3, 0.15), 0x6b4628);
+    ear.position.set(1.0, 0.8, s*0.2);
+    ear.rotation.z = 0.3;
+    g.add(ear);
+  }
+  // Coil (stack of rings using torus)
+  for (let i = 0; i < 8; i++) {
+    const ring = M(new THREE.TorusGeometry(0.2, 0.04, 6, 16), 0xbbbbbb, { metal: 0.7, rough: 0.3 });
+    ring.rotation.y = Math.PI/2;
+    ring.position.set(0.2 - i*0.08, 0.45, 0);
+    g.add(ring);
+  }
+  // Back body
+  const back = M(new THREE.SphereGeometry(0.32, 12, 10), 0x8b5a2b);
+  back.scale.set(1.1, 0.9, 1.1);
+  back.position.set(-0.6, 0.45, 0);
+  g.add(back);
+  // Tail
+  const tail = M(new THREE.ConeGeometry(0.08, 0.3, 6), 0x8b5a2b);
+  tail.rotation.z = -Math.PI/2;
+  tail.position.set(-0.95, 0.55, 0);
+  g.add(tail);
+  g.traverse(o => { if (o.isMesh) { o.castShadow = true; }});
+  return g;
+}
+
+function buildArmy() {
+  // Green army man
+  const g = new THREE.Group();
+  const base = M(new THREE.CylinderGeometry(0.35, 0.4, 0.08, 16), 0x4a7b2a);
+  base.position.y = 0.04;
+  g.add(base);
+  const body = M(new THREE.CylinderGeometry(0.18, 0.22, 0.5, 10), 0x4a7b2a);
+  body.position.y = 0.35;
+  g.add(body);
+  const head = M(new THREE.SphereGeometry(0.15, 10, 10), 0x4a7b2a);
+  head.position.y = 0.72;
+  g.add(head);
+  // Helmet
+  const helm = M(new THREE.SphereGeometry(0.17, 10, 8, 0, Math.PI*2, 0, Math.PI/2), 0x355c1f);
+  helm.position.y = 0.78;
+  g.add(helm);
+  // Arms (akimbo)
+  for (const s of [-1,1]) {
+    const arm = M(new THREE.CylinderGeometry(0.06, 0.06, 0.35, 6), 0x4a7b2a);
+    arm.position.set(s*0.22, 0.45, 0);
+    arm.rotation.z = s * 0.4;
+    g.add(arm);
+  }
+  g.traverse(o => { if (o.isMesh) { o.castShadow = true; }});
+  return g;
+}
+
+function buildBuzz() {
+  // Buzz Lightyear: white suit, purple hood, green chest
+  const g = new THREE.Group();
+  const body = M(new THREE.CylinderGeometry(0.32, 0.35, 0.7, 12), 0xffffff);
+  body.position.y = 0.5;
+  g.add(body);
+  // Green chest plate
+  const chest = M(new THREE.BoxGeometry(0.45, 0.25, 0.1), 0x8bcf3f);
+  chest.position.set(0, 0.65, 0.3);
+  g.add(chest);
+  // Head
+  const head = M(new THREE.SphereGeometry(0.25, 14, 12), 0xffe0bd);
+  head.position.y = 1.05;
+  g.add(head);
+  // Purple hood
+  const hood = M(new THREE.SphereGeometry(0.28, 14, 12, 0, Math.PI*2, 0, Math.PI*0.6), 0x5b2d9a);
+  hood.position.y = 1.12;
+  g.add(hood);
+  // Helmet dome (semi-transparent)
+  const dome = new THREE.Mesh(
+    new THREE.SphereGeometry(0.3, 16, 12, 0, Math.PI*2, 0, Math.PI*0.5),
+    new THREE.MeshPhysicalMaterial({ color: 0xbfe9ff, transparent: true, opacity: 0.3, roughness: 0.05, metalness: 0, transmission: 0.7, ior: 1.3 })
+  );
+  dome.position.y = 1.12;
+  g.add(dome);
+  // Purple legs
+  for (const s of [-1, 1]) {
+    const leg = M(new THREE.CylinderGeometry(0.12, 0.12, 0.4, 8), 0x5b2d9a);
+    leg.position.set(s*0.12, 0.2, 0);
+    g.add(leg);
+  }
+  // Wings (folded)
+  for (const s of [-1, 1]) {
+    const wing = M(new THREE.BoxGeometry(0.06, 0.45, 0.3), 0xffffff);
+    wing.position.set(s*0.4, 0.65, -0.1);
+    g.add(wing);
+    const tip = M(new THREE.BoxGeometry(0.04, 0.15, 0.2), 0xd32020);
+    tip.position.set(s*0.4, 0.8, -0.1);
+    g.add(tip);
+  }
+  g.traverse(o => { if (o.isMesh) { o.castShadow = true; }});
+  return g;
+}
+
+function buildWoody() {
+  // Woody: blue jeans, yellow check shirt hint, brown hat
+  const g = new THREE.Group();
+  // Legs
+  const legs = M(new THREE.CylinderGeometry(0.18, 0.22, 0.55, 10), 0x2b4a8a);
+  legs.position.y = 0.28;
+  g.add(legs);
+  // Torso (yellow shirt with red trim hint via color)
+  const torso = M(new THREE.CylinderGeometry(0.25, 0.24, 0.45, 12), 0xf2c84b);
+  torso.position.y = 0.78;
+  g.add(torso);
+  // Vest (brown/white cowhide feeling as darker strip)
+  const vest = M(new THREE.CylinderGeometry(0.26, 0.25, 0.35, 12, 1, true), 0x6b4628);
+  vest.position.y = 0.8;
+  g.add(vest);
+  // Sheriff badge
+  const badge = buildStar(0.11, 0xffd66b);
+  badge.rotation.x = 0; badge.rotation.z = 0.2;
+  badge.position.set(0.18, 0.9, 0.23);
+  badge.rotation.set(-Math.PI/2 + 0.1, 0, 0);
+  g.add(badge);
+  // Head
+  const head = M(new THREE.SphereGeometry(0.22, 14, 12), 0xffe0bd);
+  head.position.y = 1.2;
+  g.add(head);
+  // Hat
+  const hatBrim = M(new THREE.CylinderGeometry(0.38, 0.38, 0.04, 20), 0x6b4628);
+  hatBrim.position.y = 1.38;
+  g.add(hatBrim);
+  const hatCrown = M(new THREE.CylinderGeometry(0.2, 0.22, 0.25, 16), 0x6b4628);
+  hatCrown.position.y = 1.52;
+  g.add(hatCrown);
+  // Arms
+  for (const s of [-1, 1]) {
+    const arm = M(new THREE.CylinderGeometry(0.08, 0.08, 0.4, 8), 0xf2c84b);
+    arm.position.set(s*0.3, 0.78, 0);
+    arm.rotation.z = s * 0.2;
+    g.add(arm);
+  }
+  g.traverse(o => { if (o.isMesh) { o.castShadow = true; }});
+  return g;
+}
+
+function buildPropStar() {
+  const g = new THREE.Group();
+  const star = buildStar(0.35, 0xffd66b);
+  star.rotation.x = -Math.PI/2;
+  star.position.y = 0.05;
+  g.add(star);
+  star.userData.spin = true;
+  return g;
+}
+
+function buildBlockProp(letter) {
+  const g = new THREE.Group();
+  const color = { A: 0xd34a3c, B: 0x3b82f6, C: 0x22c55e, D: 0xf59e0b }[letter] || 0xffffff;
+  const block = M(new THREE.BoxGeometry(0.7, 0.7, 0.7), color);
+  block.position.y = 0.35;
+  g.add(block);
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return g;
+}
+
+/* =========================================================
+   BACKDROP (wallpaper clouds, space, etc.)
+   ========================================================= */
+function buildBackdrop(course) {
+  // Nothing heavy - just tint set in buildCourse. Could add skybox here in future.
+}
+
+/* =========================================================
+   PHYSICS & GAME LOOP
+   ========================================================= */
+function resetBallToTee() {
+  const c = state.course;
+  ball.position.set(c.tee.x, BALL_RADIUS, c.tee.z);
+  state.ballPos.copy(ball.position);
+  state.ballVel.set(0, 0, 0);
+}
+
+function applyShot(shot) {
+  // shot = { dirX, dirZ, power }
+  const speed = MAX_POWER * shot.power;
+  state.ballVel.set(shot.dirX * speed, 0, shot.dirZ * speed);
+  state.currentStrokes++;
+  updateHUD();
+  state.phase = 'rolling';
+  arrowGroup.visible = false;
+  hidePowerMeter();
+}
+
+function physicsStep(dt) {
+  if (state.phase !== 'rolling') return;
+
+  // --- Substep to prevent tunneling through thin walls ---
+  // Each substep moves at most MAX_SUBSTEP_DIST units; this must be < BALL_RADIUS
+  // and < the thinnest wall in play (border blocks = 0.55 deep).
+  const frameSpeed = Math.sqrt(state.ballVel.x*state.ballVel.x + state.ballVel.z*state.ballVel.z);
+  const MAX_SUBSTEP_DIST = 0.12;
+  const substeps = Math.max(1, Math.ceil(frameSpeed / MAX_SUBSTEP_DIST));
+  const inv = 1 / substeps;
+
+  let holed = false;
+  for (let s = 0; s < substeps && !holed; s++) {
+    // Move
+    state.ballPos.x += state.ballVel.x * inv;
+    state.ballPos.z += state.ballVel.z * inv;
+
+    // Wall collisions (AABB) — run twice per substep so multiple simultaneous
+    // contacts (e.g. corner between two walls) resolve cleanly.
+    for (let pass = 0; pass < 2; pass++) {
+      for (const w of state.walls) {
+        const halfW = w.w / 2, halfD = w.d / 2;
+        const cx = Math.max(w.x - halfW, Math.min(state.ballPos.x, w.x + halfW));
+        const cz = Math.max(w.z - halfD, Math.min(state.ballPos.z, w.z + halfD));
+        let ddx = state.ballPos.x - cx;
+        let ddz = state.ballPos.z - cz;
+        let distSq = ddx*ddx + ddz*ddz;
+
+        if (distSq < BALL_RADIUS * BALL_RADIUS) {
+          let dist = Math.sqrt(distSq);
+          let nx, nz;
+          if (dist < 0.0001) {
+            // Ball center exactly on AABB edge or inside — push out along
+            // shortest axis out of the AABB.
+            const leftOut  = Math.abs(state.ballPos.x - (w.x - halfW));
+            const rightOut = Math.abs((w.x + halfW) - state.ballPos.x);
+            const nearOut  = Math.abs(state.ballPos.z - (w.z - halfD));
+            const farOut   = Math.abs((w.z + halfD) - state.ballPos.z);
+            const minOut = Math.min(leftOut, rightOut, nearOut, farOut);
+            if (minOut === leftOut)       { nx = -1; nz = 0; }
+            else if (minOut === rightOut) { nx =  1; nz = 0; }
+            else if (minOut === nearOut)  { nx = 0;  nz = -1; }
+            else                          { nx = 0;  nz = 1; }
+            dist = 0;
+          } else {
+            nx = ddx / dist;
+            nz = ddz / dist;
+          }
+          const overlap = BALL_RADIUS - dist + 0.001; // tiny epsilon
+          state.ballPos.x += nx * overlap;
+          state.ballPos.z += nz * overlap;
+          // Reflect velocity along normal (only if moving INTO the wall)
+          const vn = state.ballVel.x * nx + state.ballVel.z * nz;
+          if (vn < 0) {
+            state.ballVel.x -= (1 + WALL_BOUNCE) * vn * nx;
+            state.ballVel.z -= (1 + WALL_BOUNCE) * vn * nz;
+          }
+        }
+      }
+    }
+
+    // Hole check each substep (so fast balls still sink at the right spot)
+    const hdx = state.ballPos.x - state.holeWorld.x;
+    const hdz = state.ballPos.z - state.holeWorld.z;
+    const distToHole = Math.sqrt(hdx*hdx + hdz*hdz);
+    const curSpeed = Math.sqrt(state.ballVel.x*state.ballVel.x + state.ballVel.z*state.ballVel.z);
+    if (distToHole < HOLE_RADIUS - BALL_RADIUS * 0.2 && curSpeed < HOLE_CAPTURE_SPEED) {
+      state.ballVel.set(0, 0, 0);
+      state.ballPos.x = state.holeWorld.x;
+      state.ballPos.z = state.holeWorld.z;
+      state.ballPos.y -= 0.04;
+      ball.position.copy(state.ballPos);
+      onHoleComplete();
+      holed = true;
+      break;
+    } else if (distToHole < HOLE_RADIUS + BALL_RADIUS * 0.3 && curSpeed < HOLE_CAPTURE_SPEED * 1.5) {
+      const pull = 0.006 * inv / Math.max(distToHole, 0.2);
+      state.ballVel.x -= hdx * pull;
+      state.ballVel.z -= hdz * pull;
+    }
+  }
+  if (holed) return;
+
+  // Apply friction once per frame
+  state.ballVel.multiplyScalar(FRICTION);
+
+  // Rolling rotation (visual)
+  const finalSpeed = Math.sqrt(state.ballVel.x*state.ballVel.x + state.ballVel.z*state.ballVel.z);
+  const rollAxis = new THREE.Vector3(state.ballVel.z, 0, -state.ballVel.x);
+  const rollLen = rollAxis.length();
+  if (rollLen > 0.0001) {
+    rollAxis.normalize();
+    const angle = finalSpeed / BALL_RADIUS;
+    ball.rotateOnWorldAxis(rollAxis, angle);
+  }
+
+  ball.position.copy(state.ballPos);
+
+  // Stop check
+  if (finalSpeed < MIN_VELOCITY) {
+    state.ballVel.set(0, 0, 0);
+    state.phase = 'aim';
+    updateAimArrow();
+  }
+}
+
+/* =========================================================
+   CAMERA
+   ========================================================= */
+function updateCamera(dt) {
+  // Follow ball, looking slightly ahead toward hole
+  const c = state.course;
+  if (!c) return;
+
+  // Target: blend ball and hole midpoint
+  const mid = new THREE.Vector3(
+    (state.ballPos.x + state.holeWorld.x) * 0.5,
+    0,
+    (state.ballPos.z + state.holeWorld.z) * 0.5
+  );
+  // Camera aims at a point slightly ahead of the ball toward hole
+  const dirToHole = new THREE.Vector3(state.holeWorld.x - state.ballPos.x, 0, state.holeWorld.z - state.ballPos.z);
+  const lookAt = state.ballPos.clone().add(dirToHole.clone().multiplyScalar(0.3));
+  cameraTarget.lerp(lookAt, 0.1);
+
+  // Camera pos: behind the ball relative to hole
+  const backDir = dirToHole.clone().negate();
+  if (backDir.length() < 0.01) backDir.set(0, 0, -1);
+  backDir.normalize();
+
+  const camPos = new THREE.Vector3(
+    state.ballPos.x + backDir.x * 9,
+    10,
+    state.ballPos.z + backDir.z * 9
+  );
+  camera.position.lerp(camPos, 0.08);
+  camera.lookAt(cameraTarget);
+}
+
+/* =========================================================
+   INPUT: aim/power via touch & mouse
+   ========================================================= */
+function getPointer(e) {
+  if (e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  if (e.changedTouches && e.changedTouches[0]) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+  return { x: e.clientX, y: e.clientY };
+}
+
+function onPointerDown(e) {
+  if (state.phase !== 'aim') return;
+  e.preventDefault();
+  const p = getPointer(e);
+  state.aim.active = true;
+  state.aim.startX = p.x;
+  state.aim.startY = p.y;
+  state.aim.dx = 0; state.aim.dy = 0;
+  hideHint();
+}
+
+function onPointerMove(e) {
+  if (!state.aim.active) return;
+  e.preventDefault();
+  const p = getPointer(e);
+  state.aim.dx = p.x - state.aim.startX;
+  state.aim.dy = p.y - state.aim.startY;
+  updateAimArrow();
+  showPowerMeter();
+}
+
+function onPointerUp(e) {
+  if (!state.aim.active) return;
+  e.preventDefault();
+  state.aim.active = false;
+
+  const dx = state.aim.dx;
+  const dy = state.aim.dy;
+  const mag = Math.sqrt(dx*dx + dy*dy);
+  const power = Math.min(mag / POWER_DRAG_DISTANCE, 1.0);
+  if (power < 0.08) {
+    // Too small — cancel
+    arrowGroup.visible = false;
+    hidePowerMeter();
+    return;
+  }
+  // Screen drag is "pull back" — shot goes OPPOSITE direction (slingshot feel)
+  // Convert screen dx/dy to world direction relative to camera.
+  const worldDir = screenDragToWorldDir(-dx, -dy);
+  applyShot({ dirX: worldDir.x, dirZ: worldDir.z, power });
+}
+
+function screenDragToWorldDir(sx, sy) {
+  // The camera view: forward is roughly from camera to ball.
+  // We'll build basis vectors on ground plane.
+  const forward = new THREE.Vector3();
+  camera.getWorldDirection(forward);
+  forward.y = 0; forward.normalize();
+  const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0,1,0)).normalize();
+  // Screen: positive sy -> up on screen -> forward in world
+  const worldX = right.x * sx - forward.x * sy;
+  const worldZ = right.z * sx - forward.z * sy;
+  const len = Math.sqrt(worldX*worldX + worldZ*worldZ) || 1;
+  return { x: worldX/len, z: worldZ/len };
+}
+
+function updateAimArrow() {
+  if (state.phase !== 'aim') { arrowGroup.visible = false; return; }
+  if (!state.aim.active) { arrowGroup.visible = false; return; }
+
+  const mag = Math.sqrt(state.aim.dx*state.aim.dx + state.aim.dy*state.aim.dy);
+  const power = Math.min(mag / POWER_DRAG_DISTANCE, 1.0);
+  if (power < 0.08) { arrowGroup.visible = false; hidePowerMeter(); return; }
+
+  const dir = screenDragToWorldDir(-state.aim.dx, -state.aim.dy);
+  arrowGroup.visible = true;
+  arrowGroup.position.set(state.ballPos.x, 0.04, state.ballPos.z);
+  const angle = Math.atan2(dir.x, dir.z);
+  arrowGroup.rotation.y = angle;
+  arrowGroup.scale.set(1, 1, 0.4 + power * 1.5);
+  // Power meter
+  document.getElementById('power-fill').style.width = (power * 100).toFixed(1) + '%';
+}
+
+function showPowerMeter() { document.getElementById('power-meter').classList.add('show'); }
+function hidePowerMeter() { document.getElementById('power-meter').classList.remove('show'); }
+
+canvas.addEventListener('touchstart', onPointerDown, { passive: false });
+canvas.addEventListener('touchmove', onPointerMove, { passive: false });
+canvas.addEventListener('touchend', onPointerUp, { passive: false });
+canvas.addEventListener('touchcancel', onPointerUp, { passive: false });
+canvas.addEventListener('mousedown', onPointerDown);
+window.addEventListener('mousemove', onPointerMove);
+window.addEventListener('mouseup', onPointerUp);
+
+/* =========================================================
+   HOLE / GAME FLOW
+   ========================================================= */
+function startGame() {
+  const nameInput = document.getElementById('player-name');
+  state.playerName = (nameInput.value.trim() || 'Partner').slice(0, 14);
+  state.holeIndex = 0;
+  state.strokes = [];
+  state.currentStrokes = 0;
+  hideOverlay('title-screen');
+  document.getElementById('hud').classList.remove('hidden');
+  loadHole(0);
+}
+
+function loadHole(idx) {
+  state.holeIndex = idx;
+  state.currentStrokes = 0;
+  state.course = COURSES[idx];
+  buildCourse(state.course);
+  resetBallToTee();
+  updateHUD();
+  showHoleBanner(state.course, idx);
+  state.phase = 'aim';
+  showHint();
+}
+
+function onHoleComplete() {
+  state.phase = 'holeComplete';
+  state.strokes.push(state.currentStrokes);
+
+  const par = state.course.par;
+  const s = state.currentStrokes;
+  let title, emoji, note;
+  if (s === 1) { title = 'HOLE IN ONE!'; emoji = '🎯🌟'; note = 'Unbelievable!'; }
+  else if (s <= par - 2) { title = 'EAGLE!'; emoji = '🦅'; note = `${par - s} under par`; }
+  else if (s === par - 1) { title = 'BIRDIE!'; emoji = '🐥'; note = '1 under par'; }
+  else if (s === par) { title = 'PAR'; emoji = '⭐'; note = 'Nice putting!'; }
+  else if (s === par + 1) { title = 'BOGEY'; emoji = '🏌️'; note = '1 over par'; }
+  else { title = `+${s - par} OVER PAR`; emoji = '😅'; note = 'Still in the round!'; }
+
+  setTimeout(() => {
+    document.getElementById('hc-title').textContent = title;
+    document.getElementById('hc-emoji').textContent = emoji;
+    document.getElementById('hc-strokes').textContent = s;
+    document.getElementById('hc-note').textContent = note;
+    const btn = document.getElementById('btn-next-hole');
+    btn.textContent = (state.holeIndex >= COURSES.length - 1) ? 'See Final Score →' : 'Next Hole →';
+    showOverlay('hole-complete');
+  }, 700);
+}
+
+function nextHole() {
+  hideOverlay('hole-complete');
+  if (state.holeIndex >= COURSES.length - 1) {
+    showFinal();
+  } else {
+    loadHole(state.holeIndex + 1);
+  }
+}
+
+function showFinal() {
+  document.getElementById('hud').classList.add('hidden');
+  hidePowerMeter();
+  arrowGroup.visible = false;
+
+  const total = state.strokes.reduce((a, b) => a + b, 0);
+  const parTotal = COURSES.reduce((a, c) => a + c.par, 0);
+  const delta = total - parTotal;
+  let title = 'GREAT ROUND!';
+  if (delta < 0) title = 'UNDER PAR!';
+  else if (delta === 0) title = 'PAR ROUND!';
+  else if (delta <= 3) title = 'NICE ROUND!';
+  else title = 'FUN ROUND!';
+
+  document.getElementById('final-title').textContent = title;
+  document.getElementById('final-player').textContent = state.playerName;
+  document.getElementById('final-total').textContent = total;
+  document.getElementById('final-par').textContent = parTotal;
+
+  // Build scorecard table
+  const tbl = document.getElementById('final-scorecard');
+  let hdr = '<tr><th>Hole</th>';
+  let par = '<tr><td class="par-row">Par</td>';
+  let sc  = '<tr><td>You</td>';
+  for (let i = 0; i < COURSES.length; i++) {
+    hdr += `<th>${i+1}</th>`;
+    par += `<td class="par-row">${COURSES[i].par}</td>`;
+    const s = state.strokes[i];
+    const p = COURSES[i].par;
+    let cls = '';
+    if (s <= p - 2) cls = 'eagle';
+    else if (s === p - 1) cls = 'birdie';
+    else if (s >= p + 1) cls = 'bogey';
+    sc += `<td class="${cls}">${s}</td>`;
+  }
+  hdr += '<th>Total</th></tr>';
+  par += `<td class="par-row">${parTotal}</td></tr>`;
+  sc  += `<td class="total">${total}</td></tr>`;
+  tbl.innerHTML = hdr + par + sc;
+
+  saveScore(state.playerName, total);
+  showOverlay('final-screen');
+}
+
+function playAgain() {
+  hideOverlay('final-screen');
+  hideOverlay('leaderboard-screen');
+  showOverlay('title-screen');
+}
+
+/* =========================================================
+   UI HELPERS
+   ========================================================= */
+function updateHUD() {
+  document.getElementById('hud-hole').textContent = `${state.holeIndex + 1}/${COURSES.length}`;
+  document.getElementById('hud-strokes').textContent = state.currentStrokes;
+  const total = state.strokes.reduce((a, b) => a + b, 0) + state.currentStrokes;
+  document.getElementById('hud-total').textContent = total;
+}
+
+function showOverlay(id) { document.getElementById(id).classList.add('active'); }
+function hideOverlay(id) { document.getElementById(id).classList.remove('active'); }
+
+function showHoleBanner(course, idx) {
+  document.getElementById('banner-num').textContent = `HOLE ${idx + 1}`;
+  document.getElementById('banner-name').textContent = course.name;
+  document.getElementById('banner-par').textContent = `PAR ${course.par}`;
+  const b = document.getElementById('hole-banner');
+  b.classList.add('show');
+  setTimeout(() => b.classList.remove('show'), 1800);
+}
+
+function showToast(msg, ms = 1400) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => t.classList.remove('show'), ms);
+}
+
+let hintShown = false;
+function showHint() {
+  if (hintShown) return;
+  hintShown = true;
+  const el = document.getElementById('hint');
+  el.classList.remove('hidden');
+  setTimeout(() => el.classList.add('hidden'), 4500);
+}
+function hideHint() { document.getElementById('hint').classList.add('hidden'); }
+
+/* =========================================================
+   HIGH SCORE PERSISTENCE
+   ========================================================= */
+const LB_KEY = 'toyStoryGolf.leaderboard.v1';
+
+function loadLeaderboard() {
+  try { return JSON.parse(localStorage.getItem(LB_KEY)) || []; }
+  catch { return []; }
+}
+function saveScore(name, total) {
+  const lb = loadLeaderboard();
+  lb.push({ name, total, ts: Date.now() });
+  lb.sort((a, b) => a.total - b.total);
+  localStorage.setItem(LB_KEY, JSON.stringify(lb.slice(0, 50)));
+}
+function renderLeaderboard(highlightName) {
+  const lb = loadLeaderboard();
+  const list = document.getElementById('lb-list');
+  if (!lb.length) {
+    list.innerHTML = '<li style="justify-items:center; grid-template-columns: 1fr;">No scores yet — be the first!</li>';
+    return;
+  }
+  const parTotal = COURSES.reduce((a, c) => a + c.par, 0);
+  list.innerHTML = lb.slice(0, 15).map((r, i) => {
+    const cls = ['', 'gold', 'silver', 'bronze'][i] || '';
+    const you = (r.name === highlightName) ? 'you' : '';
+    const delta = r.total - parTotal;
+    const deltaStr = delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : 'E';
+    return `<li class="${cls} ${you}">
+      <span class="rank">${i+1}</span>
+      <span class="name">${escapeHtml(r.name)} <small style="color:#667;font-weight:500;">(${deltaStr})</small></span>
+      <span class="score">${r.total}</span>
+    </li>`;
+  }).join('');
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* =========================================================
+   BUTTON WIRING
+   ========================================================= */
+document.getElementById('btn-start').addEventListener('click', startGame);
+document.getElementById('btn-leaderboard').addEventListener('click', () => {
+  renderLeaderboard();
+  showOverlay('leaderboard-screen');
+});
+document.getElementById('btn-next-hole').addEventListener('click', nextHole);
+document.getElementById('btn-view-scores').addEventListener('click', () => {
+  renderLeaderboard(state.playerName);
+  showOverlay('leaderboard-screen');
+});
+document.getElementById('btn-play-again').addEventListener('click', playAgain);
+document.getElementById('btn-lb-back').addEventListener('click', () => hideOverlay('leaderboard-screen'));
+document.getElementById('btn-clear-scores').addEventListener('click', () => {
+  if (confirm('Clear all scores?')) {
+    localStorage.removeItem(LB_KEY);
+    renderLeaderboard();
+  }
+});
+
+// Focus input when title shown
+setTimeout(() => {
+  const stored = localStorage.getItem('toyStoryGolf.lastName');
+  if (stored) document.getElementById('player-name').value = stored;
+}, 50);
+document.getElementById('player-name').addEventListener('change', e => {
+  localStorage.setItem('toyStoryGolf.lastName', e.target.value);
+});
+document.getElementById('player-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); startGame(); }
+});
+
+/* =========================================================
+   MAIN LOOP
+   ========================================================= */
+let lastT = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000);
+  lastT = now;
+  physicsStep(dt);
+  updateCamera(dt);
+
+  // Flag wave / star spin
+  courseRoot.traverse(o => {
+    if (o.userData?.flag) { o.rotation.z = Math.sin(now * 0.003) * 0.1; }
+    if (o.userData?.spin) { o.rotation.z += 0.02; }
+  });
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// Initial camera position so title screen backdrop looks nice
+camera.position.set(0, 10, -18);
+camera.lookAt(0, 0, 0);
+// Preview hole 1 behind title
+state.course = COURSES[0];
+buildCourse(state.course);
+resetBallToTee();
+</script>
+</body>
+</html>
