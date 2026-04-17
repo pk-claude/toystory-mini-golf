@@ -2054,12 +2054,26 @@ function physicsStep(dt) {
     state.ballPos.y += state.projectileVy;
     state.projectileVy -= 0.011;   // gravity
     state.ballVel.multiplyScalar(0.998);
+
+    // ── Invisible hard boundaries: ball can NEVER leave course footprint ──
+    // Uses the current course size so it works on every hole.
+    if (state.course) {
+      const hw = state.course.size.w / 2 - BALL_RADIUS;
+      const hd = state.course.size.d / 2 - BALL_RADIUS;
+      if (state.ballPos.x < -hw) { state.ballPos.x = -hw; state.ballVel.x =  Math.abs(state.ballVel.x) * WALL_BOUNCE; }
+      if (state.ballPos.x >  hw) { state.ballPos.x =  hw; state.ballVel.x = -Math.abs(state.ballVel.x) * WALL_BOUNCE; }
+      if (state.ballPos.z < -hd) { state.ballPos.z = -hd; state.ballVel.z =  Math.abs(state.ballVel.z) * WALL_BOUNCE; }
+      if (state.ballPos.z >  hd) { state.ballPos.z =  hd; state.ballVel.z = -Math.abs(state.ballVel.z) * WALL_BOUNCE; }
+    }
+    // Hard floor — never let ball clip below ground
+    state.ballPos.y = Math.max(BALL_RADIUS, state.ballPos.y);
+
     ball.position.copy(state.ballPos);
     ball.rotation.x += state.ballVel.z * 2;
+
+    // Landing
     if (state.ballPos.y <= BALL_RADIUS) {
-      state.ballPos.y = BALL_RADIUS;
       state.projectileVy *= -0.28;
-      ball.position.copy(state.ballPos);
       if (Math.abs(state.projectileVy) < 0.025) {
         state.projectileVy = 0;
         state.phase = 'rolling';
