@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="theme-color" content="#ffb347" />
-<title>Toy Story Mini Golf</title>
+<title>Supply Chain Finance Toy Story Mini Golf</title>
 <style>
   :root {
     --andy-blue: #6fb3e0;
@@ -403,7 +403,7 @@
 <div class="overlay active" id="title-screen">
   <div class="clouds"></div>
   <div class="title-logo">
-    <div class="top">★ ANDY'S ★</div>
+    <div class="top" style="font-size:clamp(11px,3.2vw,18px); letter-spacing:1px; transform:rotate(-2deg);">★ SUPPLY CHAIN FINANCE ★</div>
     <div class="main">TOY&nbsp;STORY</div>
     <div class="sub">MINI&nbsp;GOLF</div>
   </div>
@@ -499,30 +499,47 @@ const LEGO_COLORS = [0xd62828, 0xf6c026, 0x2a9d3f, 0x2a72d9, 0xe84aa5, 0xf39e1b,
 
 const COURSES = [
   {
-    // Hole 9 from the team's course — Toy Story Room
-    name: "Andy's Toy Box",
-    theme: 'toybox',
+    // Hole 1 — Buzz's Rocket Launch (inspired by team's photo)
+    name: "Rocket Launch!",
+    theme: 'rocket',
     par: 3,
     floorColor: 0xd9b98a,   // cardboard tan
     borderStyle: 'lego',
-    size: { w: 7.5, d: 20 },
-    tee: { x: 0, z: -8.5 },
-    hole: { x: 0, z: 8.3 },
+    size: { w: 8, d: 26 },
+    tee: { x: 0, z: -11 },
+    hole: { x: 0, z: 10.5 },
+    // rocket tunnel trigger (ball entering this zone launches through rocket)
+    rocketTunnel: {
+      entryZ: -7.5,   // ball crosses this z → enter rocket travel
+      exitX: 0, exitZ: -1.5, exitY: 3.2,   // world-space exit point of rocket nose
+      launchVx: 0, launchVz: 0.26, launchVy: 0.20,  // launch velocity
+    },
     walls: [
-      // Buzz Lightyear (left obstacle, mid-course)
-      { x: -1.7, z: -1.5, w: 1.2, d: 1.2, h: 1.6, kind: 'buzzProp' },
-      // Slinky Dog (right obstacle, mid-course)
-      { x:  1.7, z:  1.8, w: 1.8, d: 0.9, h: 0.8, kind: 'slinkyProp' },
-      // Barrel of Monkeys (center-back, horizontal barrel)
-      { x: 0, z: 4.0, w: 2.8, d: 0.9, h: 0.9, kind: 'barrelMonkeys' },
-      // LEGO stepped pyramid (center-front obstacle)
-      { x: 0.2, z: -0.5, w: 1.2, d: 1.2, h: 0.6, kind: 'legoPyramid' },
+      // Scattered colored LEGO cube obstacles (like in photo)
+      { x: -2.5, z:  1.5, w: 0.7, d: 0.7, h: 0.7, kind: 'legoCube', color: 0xd62828 },
+      { x:  2.8, z:  0.5, w: 0.7, d: 0.7, h: 0.7, kind: 'legoCube', color: 0xf6c026 },
+      { x: -1.8, z:  4.5, w: 0.7, d: 0.7, h: 0.7, kind: 'legoCube', color: 0x2a9d3f },
+      { x:  2.2, z:  3.8, w: 0.7, d: 0.7, h: 0.7, kind: 'legoCube', color: 0x2a72d9 },
+      { x: -2.8, z:  7.0, w: 0.7, d: 0.7, h: 0.7, kind: 'legoCube', color: 0xd62828 },
+      { x:  1.5, z:  7.5, w: 0.7, d: 0.7, h: 0.7, kind: 'legoCube', color: 0x2a9d3f },
+      { x: -1.0, z: -4.5, w: 0.7, d: 0.7, h: 0.7, kind: 'legoCube', color: 0xf6c026 },
+      { x:  2.0, z: -4.0, w: 0.7, d: 0.7, h: 0.7, kind: 'legoCube', color: 0xe84aa5 },
     ],
     props: [
-      // Woody on a pedestal (back right decorative)
-      { type: 'woodyPedestal', x:  2.4, z: 7.6, rot: -0.2 },
-      // Little toy kitchen (back left decorative)
-      { type: 'kitchen',       x: -2.3, z: 7.6, rot: 0.25 },
+      // Buzz Lightyear figure — center of course
+      { type: 'buzz',         x:  0.3, z:  2.5, rot: Math.PI },
+      // Jessie with HD apron — left side
+      { type: 'jessieHD',     x: -2.8, z:  5.5, rot: 0.3 },
+      // Lotso Bear — left back
+      { type: 'lotso',        x: -2.5, z:  8.2, rot: 0.5 },
+      // Mr. Potato Head — right center
+      { type: 'mrPotatoHead', x:  2.6, z:  5.2, rot: -0.4 },
+      // Letter blocks at back spelling CANDY
+      { type: 'letterBlock', x: -2.0, z: 9.5, letter: 'C' },
+      { type: 'letterBlock', x: -1.0, z: 9.5, letter: 'A' },
+      { type: 'letterBlock', x:  0.0, z: 9.5, letter: 'N' },
+      { type: 'letterBlock', x:  1.0, z: 9.5, letter: 'D' },
+      { type: 'letterBlock', x:  2.0, z: 9.5, letter: 'Y' },
     ],
     backdrop: 'toystory',
     sky: 0xbfe4f5,
@@ -638,10 +655,13 @@ const state = {
   ballPos: new THREE.Vector3(),
   ballVel: new THREE.Vector3(),
   aim: { active: false, startX: 0, startY: 0, dx: 0, dy: 0 },
-  shot: null,            // {dir: Vector3, power: 0-1}
+  shot: null,
   course: null,
-  walls: [],             // AABB walls for physics
+  walls: [],
   holeWorld: new THREE.Vector3(),
+  rocketTunnel: null,
+  rocketTimer: 0,
+  projectileVy: 0,
 };
 
 /* =========================================================
@@ -796,9 +816,17 @@ function buildCourse(course) {
     makeBorder(-W/2 - wallT/2 + 0.01, 0, wallT, D);
   }
 
-  // --- Toy Story backdrop at far end ---
+  // --- Backdrop ---
   if (course.backdrop) {
     courseRoot.add(buildBackdropPanel(course.backdrop, W, D));
+  }
+
+  // --- Rocket tunnel (Hole 1) ---
+  if (course.rocketTunnel) {
+    courseRoot.add(buildRocket(course));
+    state.rocketTunnel = course.rocketTunnel;
+  } else {
+    state.rocketTunnel = null;
   }
 
   // --- Inner walls ---
@@ -830,6 +858,11 @@ function buildWall(w) {
     case 'barrelMonkeys': return buildBarrelOfMonkeys(w);
     case 'buzzProp':      return buildBuzzObstacle(w);
     case 'slinkyProp':    return buildSlinkyObstacle(w);
+    case 'legoCube': {
+      const g = buildLegoCube(w.color || 0xd62828);
+      g.position.set(w.x, 0, w.z);
+      return g;
+    }
   }
   // Fallback generic wall
   const g = new THREE.Group();
@@ -1229,6 +1262,11 @@ function buildHole(x, z) {
   star.position.set(x, 0.015, z);
   g.add(star);
 
+  // Home Depot logo flat on the ground near hole
+  const hdLogo = buildHDLogo();
+  hdLogo.position.set(x + 1.3, 0, z + 0.2);
+  g.add(hdLogo);
+
   // Flag pole
   const pole = new THREE.Mesh(
     new THREE.CylinderGeometry(0.035, 0.035, 2.2, 8),
@@ -1271,6 +1309,387 @@ function buildStar(radius, fillColor, outlineColor) {
 }
 
 /* =========================================================
+   HOME DEPOT LOGO (placed near every hole)
+   ========================================================= */
+function buildHDLogo() {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 256;
+  const ctx = c.getContext('2d');
+  // Orange rounded square
+  ctx.fillStyle = '#f96302';
+  ctx.beginPath();
+  ctx.roundRect(8, 8, 240, 240, 24);
+  ctx.fill();
+  // White HD
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 128px Arial Black, Impact, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('HD', 128, 128);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+
+  const g = new THREE.Group();
+  // Lay flat on the ground next to hole
+  const sign = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.1, 1.1),
+    new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, transparent: false })
+  );
+  sign.rotation.x = -Math.PI / 2;
+  sign.position.y = 0.022;
+  g.add(sign);
+  return g;
+}
+
+/* =========================================================
+   ROCKET (Hole 1 — tunnel obstacle + launch)
+   ========================================================= */
+function buildRocket(course) {
+  const g = new THREE.Group();
+  const bodyR = 0.58;
+  const bodyH = 5.2;
+
+  // Main body (white/silver)
+  const body = new THREE.Mesh(
+    new THREE.CylinderGeometry(bodyR, bodyR * 1.08, bodyH, 18),
+    new THREE.MeshStandardMaterial({ color: 0xf0f2f5, roughness: 0.3, metalness: 0.25 })
+  );
+  body.position.y = bodyH / 2;
+  body.castShadow = true;
+  g.add(body);
+
+  // Nose cone
+  const nose = new THREE.Mesh(
+    new THREE.ConeGeometry(bodyR, bodyH * 0.38, 18),
+    new THREE.MeshStandardMaterial({ color: 0xe8eaed, roughness: 0.3 })
+  );
+  nose.position.y = bodyH + (bodyH * 0.38) / 2;
+  nose.castShadow = true;
+  g.add(nose);
+
+  // Buzz color bands (green + purple)
+  const bandColors = [0x2a9d3f, 0x5b2d9a, 0x2a9d3f];
+  bandColors.forEach((col, i) => {
+    const band = new THREE.Mesh(
+      new THREE.CylinderGeometry(bodyR * 1.03, bodyR * 1.03, 0.28, 18),
+      new THREE.MeshStandardMaterial({ color: col, roughness: 0.5 })
+    );
+    band.position.y = bodyH * (0.35 + i * 0.12);
+    g.add(band);
+  });
+
+  // Porthole window
+  const pRing = new THREE.Mesh(
+    new THREE.TorusGeometry(0.24, 0.06, 8, 22),
+    new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.8, roughness: 0.2 })
+  );
+  pRing.rotation.y = Math.PI / 2;
+  pRing.position.set(bodyR + 0.02, bodyH * 0.62, 0);
+  g.add(pRing);
+  const pGlass = new THREE.Mesh(
+    new THREE.CircleGeometry(0.20, 16),
+    new THREE.MeshPhysicalMaterial({ color: 0x88ccff, transparent: true, opacity: 0.55, roughness: 0.05, metalness: 0 })
+  );
+  pGlass.rotation.y = -Math.PI / 2;
+  pGlass.position.set(-(bodyR + 0.04), bodyH * 0.62, 0);
+  g.add(pGlass);
+
+  // Fins (3)
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2;
+    const fin = new THREE.Mesh(
+      new THREE.BoxGeometry(0.08, 0.9, 0.6),
+      new THREE.MeshStandardMaterial({ color: 0xf6c026, roughness: 0.5 })
+    );
+    fin.position.set(Math.cos(a) * (bodyR + 0.18), 0.5, Math.sin(a) * (bodyR + 0.18));
+    fin.rotation.y = a;
+    fin.castShadow = true;
+    g.add(fin);
+  }
+
+  // Flame exhaust (animated, tagged for flicker)
+  const flameOut = new THREE.Mesh(
+    new THREE.ConeGeometry(bodyR * 0.85, 2.0, 14),
+    new THREE.MeshBasicMaterial({ color: 0xff6800, transparent: true, opacity: 0.92 })
+  );
+  flameOut.rotation.z = Math.PI;
+  flameOut.position.y = -0.85;
+  flameOut.userData.flicker = true;
+  g.add(flameOut);
+
+  const flameIn = new THREE.Mesh(
+    new THREE.ConeGeometry(bodyR * 0.45, 1.3, 12),
+    new THREE.MeshBasicMaterial({ color: 0xffee00, transparent: true, opacity: 0.95 })
+  );
+  flameIn.rotation.z = Math.PI;
+  flameIn.position.y = -0.45;
+  flameIn.userData.flicker = true;
+  g.add(flameIn);
+
+  // Dark bore opening at base
+  const bore = new THREE.Mesh(
+    new THREE.CircleGeometry(bodyR * 0.72, 16),
+    new THREE.MeshBasicMaterial({ color: 0x080808 })
+  );
+  bore.rotation.x = Math.PI / 2;
+  bore.position.y = 0.02;
+  g.add(bore);
+
+  // Tilt forward (toward positive z = toward hole)
+  g.rotation.x = 0.38; // ~22 degrees forward lean
+
+  // Place at the entry Z of the tunnel
+  const rt = course.rocketTunnel;
+  g.position.set(rt.exitX, 0, rt.entryZ + 1.0);
+  return g;
+}
+
+/* =========================================================
+   NEW CHARACTER PROPS
+   ========================================================= */
+// Jessie with Home Depot orange apron
+function buildJessieHD() {
+  const g = new THREE.Group();
+  // Legs (blue jeans)
+  const legs = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.17, 0.21, 0.5, 10),
+    new THREE.MeshStandardMaterial({ color: 0x2a4a8a, roughness: 0.8 })
+  );
+  legs.position.y = 0.25;
+  g.add(legs);
+  // Torso — white shirt
+  const torso = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.23, 0.22, 0.42, 12),
+    new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 })
+  );
+  torso.position.y = 0.73;
+  g.add(torso);
+  // Home Depot orange apron over torso
+  const apron = new THREE.Mesh(
+    new THREE.BoxGeometry(0.38, 0.38, 0.08),
+    new THREE.MeshStandardMaterial({ color: 0xf96302, roughness: 0.8 })
+  );
+  apron.position.set(0, 0.72, 0.22);
+  g.add(apron);
+  // Tiny HD on apron
+  const hdCanvas = document.createElement('canvas');
+  hdCanvas.width = 64; hdCanvas.height = 32;
+  const hc = hdCanvas.getContext('2d');
+  hc.fillStyle = '#f96302'; hc.fillRect(0, 0, 64, 32);
+  hc.fillStyle = '#fff'; hc.font = 'bold 24px Arial'; hc.textAlign = 'center'; hc.textBaseline = 'middle';
+  hc.fillText('HD', 32, 16);
+  const hdTex = new THREE.CanvasTexture(hdCanvas);
+  const hdBadge = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.2, 0.1),
+    new THREE.MeshBasicMaterial({ map: hdTex, transparent: false })
+  );
+  hdBadge.position.set(0, 0.80, 0.27);
+  g.add(hdBadge);
+  // Red hair bun
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.21, 14, 12),
+    new THREE.MeshStandardMaterial({ color: 0xffd9a0, roughness: 0.7 })
+  );
+  head.position.y = 1.15;
+  g.add(head);
+  const hairBun = new THREE.Mesh(
+    new THREE.SphereGeometry(0.14, 10, 10),
+    new THREE.MeshStandardMaterial({ color: 0xc03a10, roughness: 0.8 })
+  );
+  hairBun.position.set(0, 1.34, -0.1);
+  g.add(hairBun);
+  // Hat (Jessie's red/white hat)
+  const hatBrim = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.33, 0.33, 0.04, 18),
+    new THREE.MeshStandardMaterial({ color: 0xd62828, roughness: 0.7 })
+  );
+  hatBrim.position.y = 1.32;
+  g.add(hatBrim);
+  const hatCrown = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.18, 0.20, 0.22, 14),
+    new THREE.MeshStandardMaterial({ color: 0xd62828, roughness: 0.7 })
+  );
+  hatCrown.position.y = 1.44;
+  g.add(hatCrown);
+  // Arms
+  for (const s of [-1, 1]) {
+    const arm = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.07, 0.07, 0.36, 8),
+      new THREE.MeshStandardMaterial({ color: 0xf96302, roughness: 0.7 })
+    );
+    arm.position.set(s * 0.29, 0.73, 0);
+    arm.rotation.z = s * 0.25;
+    g.add(arm);
+  }
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return g;
+}
+
+// Lotso Bear (pink, round)
+function buildLotso() {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.SphereGeometry(0.52, 14, 12),
+    new THREE.MeshStandardMaterial({ color: 0xf4a0c8, roughness: 0.9 })
+  );
+  body.scale.set(1.05, 1.0, 0.95);
+  body.position.y = 0.6;
+  g.add(body);
+  // Tummy
+  const tummy = new THREE.Mesh(
+    new THREE.SphereGeometry(0.3, 12, 10),
+    new THREE.MeshStandardMaterial({ color: 0xfce4ef, roughness: 0.9 })
+  );
+  tummy.position.set(0, 0.6, 0.4);
+  tummy.scale.z = 0.4;
+  g.add(tummy);
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.36, 14, 12),
+    new THREE.MeshStandardMaterial({ color: 0xf4a0c8, roughness: 0.9 })
+  );
+  head.position.y = 1.2;
+  g.add(head);
+  // Round ears
+  for (const s of [-1, 1]) {
+    const ear = new THREE.Mesh(
+      new THREE.SphereGeometry(0.14, 10, 10),
+      new THREE.MeshStandardMaterial({ color: 0xf4a0c8, roughness: 0.9 })
+    );
+    ear.position.set(s * 0.28, 1.52, 0);
+    g.add(ear);
+    const innerEar = new THREE.Mesh(
+      new THREE.SphereGeometry(0.08, 8, 8),
+      new THREE.MeshStandardMaterial({ color: 0xfce4ef, roughness: 0.9 })
+    );
+    innerEar.position.set(s * 0.3, 1.52, 0.06);
+    g.add(innerEar);
+  }
+  // Eyes
+  for (const s of [-1, 1]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), new THREE.MeshStandardMaterial({ color: 0x111 }));
+    eye.position.set(s * 0.14, 1.25, 0.32);
+    g.add(eye);
+  }
+  // Nose
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), new THREE.MeshStandardMaterial({ color: 0x333 }));
+  nose.position.set(0, 1.18, 0.35);
+  g.add(nose);
+  // Cane (his strawberry cane)
+  const cane = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.03, 0.03, 1.0, 8),
+    new THREE.MeshStandardMaterial({ color: 0xd62828, roughness: 0.6 })
+  );
+  cane.position.set(0.55, 0.5, 0.2);
+  cane.rotation.z = 0.15;
+  g.add(cane);
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return g;
+}
+
+// Mr. Potato Head (brown potato body, big eyes)
+function buildMrPotatoHead() {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.SphereGeometry(0.42, 14, 12),
+    new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.85 })
+  );
+  body.scale.set(0.9, 1.15, 0.85);
+  body.position.y = 0.55;
+  g.add(body);
+  // White eyes
+  for (const s of [-1, 1]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 10), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+    eye.position.set(s * 0.18, 0.72, 0.36);
+    g.add(eye);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 8), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+    pupil.position.set(s * 0.18, 0.72, 0.44);
+    g.add(pupil);
+  }
+  // Red lips
+  const lips = new THREE.Mesh(
+    new THREE.BoxGeometry(0.28, 0.08, 0.06),
+    new THREE.MeshStandardMaterial({ color: 0xd62828 })
+  );
+  lips.position.set(0, 0.52, 0.4);
+  g.add(lips);
+  // Brown mustache
+  const must = new THREE.Mesh(
+    new THREE.BoxGeometry(0.22, 0.06, 0.06),
+    new THREE.MeshStandardMaterial({ color: 0x5a3010, roughness: 0.9 })
+  );
+  must.position.set(0, 0.62, 0.4);
+  g.add(must);
+  // Ears (handles)
+  for (const s of [-1, 1]) {
+    const ear = new THREE.Mesh(
+      new THREE.BoxGeometry(0.22, 0.1, 0.08),
+      new THREE.MeshStandardMaterial({ color: 0x7a4a1a, roughness: 0.9 })
+    );
+    ear.position.set(s * 0.52, 0.7, 0.1);
+    g.add(ear);
+  }
+  // Hat (brown derby)
+  const hatBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.04, 16), new THREE.MeshStandardMaterial({ color: 0x3a200a }));
+  hatBrim.position.y = 1.05;
+  g.add(hatBrim);
+  const hatCrown = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.22, 14), new THREE.MeshStandardMaterial({ color: 0x3a200a }));
+  hatCrown.position.y = 1.17;
+  g.add(hatCrown);
+  // Legs (small)
+  for (const s of [-1, 1]) {
+    const leg = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.08, 0.22, 8),
+      new THREE.MeshStandardMaterial({ color: 0x6b4628 })
+    );
+    leg.position.set(s * 0.14, 0.11, 0);
+    g.add(leg);
+  }
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return g;
+}
+
+// Letter block (alphabet wooden block with colored letter face)
+function buildLetterBlock(letter) {
+  const g = new THREE.Group();
+  const faceColors = { C: 0xd62828, A: 0x2a9d3f, N: 0xf6c026, D: 0x2a72d9, Y: 0xe84aa5 };
+  const block = new THREE.Mesh(
+    new THREE.BoxGeometry(0.7, 0.7, 0.7),
+    new THREE.MeshStandardMaterial({ color: 0xe8d8a0, roughness: 0.8 })
+  );
+  block.position.y = 0.35;
+  block.castShadow = true;
+  g.add(block);
+  // Colored face on front (+z)
+  const fc = document.createElement('canvas');
+  fc.width = 128; fc.height = 128;
+  const fctx = fc.getContext('2d');
+  const col = faceColors[letter] || 0xffffff;
+  const hex = '#' + col.toString(16).padStart(6, '0');
+  fctx.fillStyle = hex; fctx.fillRect(0, 0, 128, 128);
+  fctx.fillStyle = '#fff';
+  fctx.font = 'bold 88px Impact, Arial Black'; fctx.textAlign = 'center'; fctx.textBaseline = 'middle';
+  fctx.fillText(letter, 64, 64);
+  const ltex = new THREE.CanvasTexture(fc);
+  ltex.colorSpace = THREE.SRGBColorSpace;
+  const face = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.65, 0.65),
+    new THREE.MeshBasicMaterial({ map: ltex })
+  );
+  face.position.set(0, 0.35, 0.352);
+  g.add(face);
+  return g;
+}
+
+// LEGO cube obstacle (single colored block)
+function buildLegoCube(color) {
+  const g = new THREE.Group();
+  const block = buildDuploBlock({ w: 0.65, h: 0.65, d: 0.65 }, color);
+  block.position.y = 0;
+  g.add(block);
+  return g;
+}
+
+/* =========================================================
    PROP / CHARACTER BUILDERS (stylized, low-poly)
    ========================================================= */
 function buildProp(p) {
@@ -1287,6 +1706,10 @@ function buildProp(p) {
     case 'kitchen':        mesh = buildKitchen(); break;
     case 'star':           mesh = buildPropStar(); break;
     case 'block':          mesh = buildBlockProp(p.letter); break;
+    case 'jessieHD':       mesh = buildJessieHD(); break;
+    case 'lotso':          mesh = buildLotso(); break;
+    case 'mrPotatoHead':   mesh = buildMrPotatoHead(); break;
+    case 'letterBlock':    mesh = buildLetterBlock(p.letter); break;
     default: return null;
   }
   mesh.position.set(p.x, 0, p.z);
@@ -1602,6 +2025,49 @@ function applyShot(shot) {
 }
 
 function physicsStep(dt) {
+  // Rocket travel phase (ball constrained to rocket path)
+  if (state.phase === 'rocketTravel') {
+    state.rocketTimer++;
+    const t = Math.min(state.rocketTimer / 38, 1);
+    const rt = state.rocketTunnel;
+    const entry = state.rocketEntry;
+    // Lerp ball along rocket bore from entry to exit
+    state.ballPos.x = entry.x + (rt.exitX - entry.x) * t;
+    state.ballPos.z = entry.z + (rt.exitZ - entry.z) * t;
+    state.ballPos.y = BALL_RADIUS + (rt.exitY - BALL_RADIUS) * t;
+    ball.position.copy(state.ballPos);
+    ball.rotation.x += 0.18;  // spin effect
+    if (t >= 1) {
+      state.phase = 'projectile';
+      state.ballVel.x = rt.launchVx;
+      state.ballVel.z = rt.launchVz;
+      state.projectileVy = rt.launchVy;
+      showToast('🚀 TO INFINITY AND BEYOND!', 2000);
+    }
+    return;
+  }
+
+  // Projectile phase (ball in the air after rocket launch)
+  if (state.phase === 'projectile') {
+    state.ballPos.x += state.ballVel.x;
+    state.ballPos.z += state.ballVel.z;
+    state.ballPos.y += state.projectileVy;
+    state.projectileVy -= 0.011;   // gravity
+    state.ballVel.multiplyScalar(0.998);
+    ball.position.copy(state.ballPos);
+    ball.rotation.x += state.ballVel.z * 2;
+    if (state.ballPos.y <= BALL_RADIUS) {
+      state.ballPos.y = BALL_RADIUS;
+      state.projectileVy *= -0.28;
+      ball.position.copy(state.ballPos);
+      if (Math.abs(state.projectileVy) < 0.025) {
+        state.projectileVy = 0;
+        state.phase = 'rolling';
+      }
+    }
+    return;
+  }
+
   if (state.phase !== 'rolling') return;
 
   // --- Substep to prevent tunneling through thin walls ---
@@ -1617,6 +2083,19 @@ function physicsStep(dt) {
     // Move
     state.ballPos.x += state.ballVel.x * inv;
     state.ballPos.z += state.ballVel.z * inv;
+
+    // Rocket tunnel entry check
+    if (state.rocketTunnel && state.phase === 'rolling') {
+      const rt = state.rocketTunnel;
+      const dz = state.ballPos.z - rt.entryZ;
+      if (Math.abs(dz) < 0.55 && Math.abs(state.ballPos.x - rt.exitX) < 0.7) {
+        state.phase = 'rocketTravel';
+        state.rocketTimer = 0;
+        state.rocketEntry = { x: state.ballPos.x, z: rt.entryZ };
+        state.currentStrokes = Math.max(state.currentStrokes, 1);
+        break;
+      }
+    }
 
     // Wall collisions (AABB) — run twice per substep so multiple simultaneous
     // contacts (e.g. corner between two walls) resolve cleanly.
@@ -2065,10 +2544,15 @@ function loop(now) {
   physicsStep(dt);
   updateCamera(dt);
 
-  // Flag wave / star spin
+  // Flag wave / star spin / rocket flicker
   courseRoot.traverse(o => {
-    if (o.userData?.flag) { o.rotation.z = Math.sin(now * 0.003) * 0.1; }
-    if (o.userData?.spin) { o.rotation.z += 0.02; }
+    if (o.userData?.flag)    { o.rotation.z = Math.sin(now * 0.003) * 0.1; }
+    if (o.userData?.spin)    { o.rotation.z += 0.02; }
+    if (o.userData?.flicker) {
+      const f = 0.88 + Math.random() * 0.24;
+      o.scale.set(f, 0.9 + Math.random() * 0.22, f);
+      o.material.opacity = 0.75 + Math.random() * 0.2;
+    }
   });
 
   renderer.render(scene, camera);
