@@ -356,6 +356,95 @@
 
   .hidden { display: none !important; }
 
+  /* ---------- Secret difficulty controls (Pavel only) ---------- */
+  #secret-touch {
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 90px; height: 90px;
+    z-index: 30;
+    background: transparent;
+    pointer-events: auto;
+    cursor: default;
+  }
+
+  #pin-overlay, #mode-overlay, #game-over-overlay {
+    background: rgba(10, 20, 40, 0.92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    flex-direction: column;
+    padding: 20px;
+    z-index: 50;
+  }
+  .pin-input {
+    width: 180px;
+    padding: 14px;
+    font-size: 30px;
+    text-align: center;
+    letter-spacing: 16px;
+    border: 3px solid var(--buzz-purple);
+    border-radius: 12px;
+    font-weight: 800;
+    outline: none;
+  }
+  .pin-input:focus { border-color: var(--woody-red); }
+
+  .mode-btn {
+    display: block;
+    width: 100%;
+    margin-bottom: 10px;
+    text-align: left;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: none;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+    transition: transform 0.1s;
+  }
+  .mode-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+  .mode-btn.active {
+    outline: 4px solid var(--woody-yellow);
+    outline-offset: 2px;
+  }
+  .mode-btn .mode-sub {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    opacity: 0.9;
+    margin-top: 2px;
+    text-transform: none;
+    letter-spacing: 0.5px;
+  }
+  .mode-easy   { background: var(--buzz-green); color: #fff; }
+  .mode-normal { background: var(--woody-red);  color: #fff; }
+  .mode-oliver { background: #1a1a1a; color: #ff4040; }
+
+  #game-over-overlay { background: rgba(20, 0, 0, 0.9); }
+  .go-title {
+    font-family: "Impact", "Arial Black", sans-serif;
+    font-size: clamp(64px, 16vw, 150px);
+    color: #ff3030;
+    text-shadow: 4px 4px 0 #000, 8px 8px 30px rgba(255,30,30,0.9);
+    letter-spacing: 6px;
+    line-height: 1;
+    animation: goShake 0.45s infinite;
+  }
+  @keyframes goShake {
+    0%,100% { transform: rotate(-3deg) translate(0,0); }
+    25%     { transform: rotate(-1deg) translate(-6px,3px); }
+    50%     { transform: rotate(-3deg) translate(4px,-2px); }
+    75%     { transform: rotate(-5deg) translate(-3px,-3px); }
+  }
+  .go-sub {
+    color: #ff8080;
+    font-weight: 800;
+    letter-spacing: 2px;
+    margin: 20px 0 30px;
+    text-shadow: 2px 2px 0 #000;
+  }
+
   @media (max-width: 420px) {
     .title-logo .main { font-size: 64px; }
     .hud-pill { padding: 6px 10px; min-width: 56px; }
@@ -451,6 +540,53 @@
   </div>
 </div>
 
+<!-- Secret hit area (invisible, bottom-right corner) -->
+<div id="secret-touch"></div>
+
+<!-- PIN entry (secret) -->
+<div class="overlay" id="pin-overlay">
+  <div class="card" style="text-align:center; max-width:320px;">
+    <div style="font-weight:800; color: var(--buzz-purple); margin-bottom:12px; letter-spacing:1px;">PIN</div>
+    <input id="pin-input" class="pin-input" type="password" maxlength="4" inputmode="numeric" autocomplete="off" />
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn btn-primary" id="btn-pin-submit">OK</button>
+      <button class="btn" id="btn-pin-cancel" style="background:#ccc; color:#333;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mode selector (secret) -->
+<div class="overlay" id="mode-overlay">
+  <div class="card" style="max-width:380px;">
+    <div style="font-weight:900; font-size:22px; color: var(--buzz-purple); margin-bottom:12px; text-align:center; letter-spacing:1px;">DIFFICULTY MODE</div>
+    <button class="mode-btn mode-easy" data-mode="easy">
+      EASY
+      <span class="mode-sub">Claw delivers every hole-in-1 after first hit</span>
+    </button>
+    <button class="mode-btn mode-normal" data-mode="normal">
+      NORMAL
+      <span class="mode-sub">Standard gameplay</span>
+    </button>
+    <button class="mode-btn mode-oliver" data-mode="oliver">
+      OLIVER
+      <span class="mode-sub">Ball explodes on first hit — GAME OVER</span>
+    </button>
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn" id="btn-mode-close" style="background:#ccc; color:#333;">Close</button>
+    </div>
+    <div class="muted" style="margin-top:10px; font-size:11px; text-align:center;">Setting persists on this device.</div>
+  </div>
+</div>
+
+<!-- Game Over (Oliver mode) -->
+<div class="overlay" id="game-over-overlay">
+  <div style="display:flex; flex-direction:column; align-items:center; gap:20px; text-align:center;">
+    <div class="go-title">GAME<br>OVER</div>
+    <div class="go-sub">💥 BOOM 💥</div>
+    <button class="btn btn-primary" id="btn-go-back">← Back to Title</button>
+  </div>
+</div>
+
 <!-- Leaderboard -->
 <div class="overlay" id="leaderboard-screen">
   <div class="card">
@@ -488,6 +624,15 @@ const POWER_DRAG_DISTANCE = 240;  // pixels for max power
 const WALL_BOUNCE = 0.72;
 const HOLE_RADIUS = 0.55;
 const HOLE_CAPTURE_SPEED = 0.45;  // speed below which ball falls into hole
+
+/* ---------------------------------------------------------
+   PAVEL — CHANGE YOUR PIN HERE
+   Long-press the bottom-right corner of the title screen
+   for ~1.2 seconds to bring up the PIN prompt, then pick a
+   difficulty mode. Setting persists on the device.
+   --------------------------------------------------------- */
+const PAVEL_PIN = '1995';
+const CHARACTER_SCALE = 1.8;   // how much bigger Toy Story characters should be
 
 /* =========================================================
    COURSE DEFINITIONS (5 Toy Story themed holes)
@@ -651,7 +796,7 @@ const state = {
   holeIndex: 0,
   strokes: [],           // strokes per hole
   currentStrokes: 0,
-  phase: 'title',        // title | aim | rolling | holeComplete | final
+  phase: 'title',        // title | aim | rolling | holeComplete | final | clawActive | exploded
   ballPos: new THREE.Vector3(),
   ballVel: new THREE.Vector3(),
   aim: { active: false, startX: 0, startY: 0, dx: 0, dy: 0 },
@@ -662,6 +807,17 @@ const state = {
   rocketTunnel: null,
   rocketTimer: 0,
   projectileVy: 0,
+
+  // Difficulty mode state
+  difficultyMode: (localStorage.getItem('tsgolf.difficulty') || 'normal'),
+  oliverTriggered: false,
+  firstShotThisHole: true,
+  claw: null,
+  clawPhase: null,
+  clawT: 0,
+  clawStartPos: null,
+  explosionParticles: null,
+  explosionT: 0,
 };
 
 /* =========================================================
@@ -1692,6 +1848,12 @@ function buildLegoCube(color) {
 /* =========================================================
    PROP / CHARACTER BUILDERS (stylized, low-poly)
    ========================================================= */
+// Types that should auto-face the ball, bob, and scale up
+const CHARACTER_TYPES = new Set([
+  'rex','hamm','alien','slinky','army','buzz','woody',
+  'jessieHD','lotso','mrPotatoHead',
+]);
+
 function buildProp(p) {
   let mesh;
   switch (p.type) {
@@ -1714,6 +1876,28 @@ function buildProp(p) {
   }
   mesh.position.set(p.x, 0, p.z);
   mesh.rotation.y = p.rot || 0;
+
+  if (CHARACTER_TYPES.has(p.type)) {
+    // Bigger, livelier, and they'll face the ball during gameplay
+    mesh.scale.setScalar(CHARACTER_SCALE);
+    mesh.userData.facesBall = true;
+    mesh.userData.bobs = true;
+    mesh.userData.bobPhase = Math.random() * Math.PI * 2;
+    mesh.userData.wavePhase = Math.random() * Math.PI * 2;
+    mesh.userData.baseY = 0;
+    mesh.userData.baseRotY = p.rot || 0;
+
+    // Add a subtle emissive "pop" to all MeshStandardMaterial children
+    // so characters read as more colorful under the course lighting.
+    mesh.traverse(o => {
+      if (o.isMesh && o.material && 'emissive' in o.material) {
+        const c = o.material.color;
+        // Reuse the base color as a low-intensity emissive tint
+        o.material.emissive = new THREE.Color(c.r * 0.15, c.g * 0.15, c.b * 0.15);
+        o.material.emissiveIntensity = 0.6;
+      }
+    });
+  }
   return mesh;
 }
 
@@ -2004,6 +2188,306 @@ function buildBackdrop(course) {
 }
 
 /* =========================================================
+   DIFFICULTY: CLAW (Easy mode) + EXPLOSION (Oliver mode)
+   ========================================================= */
+function buildClaw() {
+  const g = new THREE.Group();
+
+  // Metallic cable: thin cylinder; we'll scale Y dynamically to reach up to the sky
+  const cable = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.035, 0.035, 1, 6),
+    new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.9, roughness: 0.25 })
+  );
+  cable.position.y = 0.5;  // will be re-positioned each frame
+  g.add(cable);
+  g.userData.cable = cable;
+
+  // Claw housing: red/yellow arcade-looking hub
+  const hub = new THREE.Group();
+  const hubCore = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.32, 0.32, 0.32, 14),
+    new THREE.MeshStandardMaterial({ color: 0xd62828, metalness: 0.55, roughness: 0.3 })
+  );
+  hub.add(hubCore);
+  const hubTop = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.18, 0.32, 0.12, 14),
+    new THREE.MeshStandardMaterial({ color: 0xf6c026, metalness: 0.55, roughness: 0.3 })
+  );
+  hubTop.position.y = 0.22;
+  hub.add(hubTop);
+  const hubBand = new THREE.Mesh(
+    new THREE.TorusGeometry(0.33, 0.03, 6, 18),
+    new THREE.MeshStandardMaterial({ color: 0xf6c026, metalness: 0.6, roughness: 0.3 })
+  );
+  hubBand.rotation.x = Math.PI / 2;
+  hub.add(hubBand);
+  hub.position.y = 0;
+  g.add(hub);
+
+  // Small bolts on the hub
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2;
+    const bolt = new THREE.Mesh(
+      new THREE.SphereGeometry(0.035, 6, 6),
+      new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.9, roughness: 0.3 })
+    );
+    bolt.position.set(Math.cos(a) * 0.33, 0, Math.sin(a) * 0.33);
+    g.add(bolt);
+  }
+
+  // 3 claw prongs — each in its own pivot group so we can swing them open/closed
+  const prongs = [];
+  for (let i = 0; i < 3; i++) {
+    const ang = (i / 3) * Math.PI * 2;
+    const pivot = new THREE.Group();
+    pivot.position.set(Math.cos(ang) * 0.18, -0.12, Math.sin(ang) * 0.18);
+    pivot.rotation.y = -ang + Math.PI / 2;
+
+    // Upper segment
+    const upper = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.05, 0.07, 0.55, 6),
+      new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.85, roughness: 0.25 })
+    );
+    upper.position.y = -0.27;
+    pivot.add(upper);
+
+    // Curved tip
+    const tip = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.08, 0.28, 6),
+      new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.85, roughness: 0.25 })
+    );
+    tip.position.set(0, -0.58, 0.1);
+    tip.rotation.x = -0.7;
+    pivot.add(tip);
+
+    // Claw point (small cone at end)
+    const point = new THREE.Mesh(
+      new THREE.ConeGeometry(0.06, 0.1, 6),
+      new THREE.MeshStandardMaterial({ color: 0x666666, metalness: 0.9, roughness: 0.2 })
+    );
+    point.position.set(0, -0.72, 0.17);
+    point.rotation.x = -0.7 + Math.PI;
+    pivot.add(point);
+
+    g.add(pivot);
+    prongs.push(pivot);
+  }
+  g.userData.prongs = prongs;
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return g;
+}
+
+// openness: 1 = fully open, 0 = fully closed
+function setClawOpenness(claw, openness) {
+  const k = Math.max(0, Math.min(1, openness));
+  claw.userData.prongs.forEach((pivot, i) => {
+    const ang = (i / 3) * Math.PI * 2;
+    const spread = 0.12 + k * 0.14;
+    pivot.position.x = Math.cos(ang) * spread;
+    pivot.position.z = Math.sin(ang) * spread;
+    // Swing prong outward when open, inward when closed
+    pivot.rotation.z = -(1 - k) * 0.35;
+  });
+}
+
+function deployClaw() {
+  if (state.claw) return;
+  if (state.phase !== 'rolling' && state.phase !== 'aim') return;
+  if (state.difficultyMode !== 'easy') return;
+
+  state.ballVel.set(0, 0, 0);
+  const claw = buildClaw();
+  claw.position.set(state.ballPos.x, 16, state.ballPos.z);
+  setClawOpenness(claw, 1);
+  scene.add(claw);
+  state.claw = claw;
+  state.clawPhase = 'descending';
+  state.clawT = 0;
+  state.phase = 'clawActive';
+}
+
+function updateClawCable(claw) {
+  // Cable stretches from top of hub up to some "ceiling" way above the camera
+  const topY = 25;
+  const hubY = claw.position.y + 0.25;
+  const len = Math.max(0.05, topY - hubY);
+  claw.userData.cable.scale.y = len;
+  claw.userData.cable.position.y = 0.25 + len / 2;
+}
+
+function updateClaw() {
+  if (!state.claw) return;
+  const claw = state.claw;
+  state.clawT++;
+  const t = (dur) => Math.min(state.clawT / dur, 1);
+
+  if (state.clawPhase === 'descending') {
+    claw.position.x = state.ballPos.x;
+    claw.position.z = state.ballPos.z;
+    const k = t(55);
+    // Ease-in-out: accelerate then decelerate as it reaches the ball
+    const e = 0.5 - Math.cos(k * Math.PI) / 2;
+    claw.position.y = 16 - 15.1 * e;   // ends just above the ball
+    setClawOpenness(claw, 1);
+    if (k >= 1) { state.clawPhase = 'grabbing'; state.clawT = 0; }
+  } else if (state.clawPhase === 'grabbing') {
+    const k = t(18);
+    setClawOpenness(claw, 1 - k);
+    if (k >= 1) { state.clawPhase = 'lifting'; state.clawT = 0; }
+  } else if (state.clawPhase === 'lifting') {
+    const k = t(40);
+    const e = 0.5 - Math.cos(k * Math.PI) / 2;
+    const targetY = 6;
+    claw.position.y = 0.9 + (targetY - 0.9) * e;
+    state.ballPos.y = claw.position.y - 0.95;
+    ball.position.copy(state.ballPos);
+    if (k >= 1) {
+      state.clawPhase = 'carrying';
+      state.clawT = 0;
+      state.clawStartPos = { x: claw.position.x, z: claw.position.z };
+    }
+  } else if (state.clawPhase === 'carrying') {
+    const k = t(75);
+    const e = 0.5 - Math.cos(k * Math.PI) / 2;
+    claw.position.x = state.clawStartPos.x + (state.holeWorld.x - state.clawStartPos.x) * e;
+    claw.position.z = state.clawStartPos.z + (state.holeWorld.z - state.clawStartPos.z) * e;
+    state.ballPos.x = claw.position.x;
+    state.ballPos.z = claw.position.z;
+    state.ballPos.y = claw.position.y - 0.95;
+    ball.position.copy(state.ballPos);
+    // slight sway — classic arcade claw
+    claw.rotation.z = Math.sin(state.clawT * 0.18) * 0.08;
+    if (k >= 1) { state.clawPhase = 'releasing'; state.clawT = 0; claw.rotation.z = 0; }
+  } else if (state.clawPhase === 'releasing') {
+    const k = t(12);
+    setClawOpenness(claw, k);
+    if (k >= 1) { state.clawPhase = 'dropping'; state.clawT = 0; }
+  } else if (state.clawPhase === 'dropping') {
+    const k = t(22);
+    const startY = claw.position.y - 0.95;
+    state.ballPos.x = state.holeWorld.x;
+    state.ballPos.z = state.holeWorld.z;
+    state.ballPos.y = startY * (1 - k) + (-0.05) * k;
+    ball.position.copy(state.ballPos);
+    if (k >= 1) { state.clawPhase = 'retracting'; state.clawT = 0; }
+  } else if (state.clawPhase === 'retracting') {
+    const k = t(35);
+    const e = 0.5 - Math.cos(k * Math.PI) / 2;
+    claw.position.y = 6 + 12 * e;
+    if (k >= 1) {
+      scene.remove(claw);
+      claw.traverse(o => {
+        o.geometry?.dispose?.();
+        if (o.material) {
+          if (Array.isArray(o.material)) o.material.forEach(m => m.dispose());
+          else o.material.dispose();
+        }
+      });
+      state.claw = null;
+      state.clawPhase = null;
+      onHoleComplete();
+      return;
+    }
+  }
+
+  updateClawCable(claw);
+}
+
+/* ---------- Oliver mode: ball explodes ---------- */
+function triggerOliverExplosion() {
+  if (state.phase === 'exploded') return;
+  if (state.phase === 'holeComplete' || state.phase === 'final' || state.phase === 'title') return;
+  state.phase = 'exploded';
+  state.ballVel.set(0, 0, 0);
+
+  // Particle burst
+  const group = new THREE.Group();
+  const particleCount = 50;
+  const colors = [0xff2222, 0xff6a00, 0xffd000, 0xffffff, 0xff8a33];
+  for (let i = 0; i < particleCount; i++) {
+    const r = 0.06 + Math.random() * 0.14;
+    const mat = new THREE.MeshBasicMaterial({
+      color: colors[i % colors.length],
+      transparent: true,
+      opacity: 1,
+    });
+    const p = new THREE.Mesh(new THREE.SphereGeometry(r, 6, 6), mat);
+    p.position.copy(state.ballPos);
+    const yaw = Math.random() * Math.PI * 2;
+    const pitch = Math.random() * Math.PI * 0.55;
+    const speed = 0.18 + Math.random() * 0.35;
+    p.userData.vel = new THREE.Vector3(
+      Math.cos(yaw) * Math.cos(pitch) * speed,
+      Math.sin(pitch) * speed + 0.15,
+      Math.sin(yaw) * Math.cos(pitch) * speed
+    );
+    group.add(p);
+  }
+  scene.add(group);
+  state.explosionParticles = group;
+  state.explosionT = 0;
+
+  // Shockwave ring on ground
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.1, 0.3, 24),
+    new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.9, side: THREE.DoubleSide })
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.set(state.ballPos.x, 0.03, state.ballPos.z);
+  scene.add(ring);
+  state.explosionRing = ring;
+
+  // Hide the ball
+  ball.visible = false;
+
+  // Brief flash on the scene background
+  const origBg = scene.background?.clone?.() ?? null;
+  scene.background = new THREE.Color(0xffffff);
+  setTimeout(() => { if (origBg) scene.background = origBg; }, 90);
+
+  // Show GAME OVER after the explosion plays
+  setTimeout(() => showOverlay('game-over-overlay'), 1100);
+}
+
+function updateExplosion() {
+  if (!state.explosionParticles) return;
+  state.explosionT++;
+  const life = state.explosionT;
+  state.explosionParticles.children.forEach(p => {
+    p.position.add(p.userData.vel);
+    p.userData.vel.y -= 0.012;  // gravity
+    if (p.position.y < 0.02) {
+      p.position.y = 0.02;
+      p.userData.vel.y = -p.userData.vel.y * 0.3;
+      p.userData.vel.x *= 0.7;
+      p.userData.vel.z *= 0.7;
+    }
+    p.material.opacity = Math.max(0, 1 - life / 80);
+  });
+  if (state.explosionRing) {
+    const k = Math.min(life / 40, 1);
+    state.explosionRing.scale.set(1 + k * 14, 1 + k * 14, 1);
+    state.explosionRing.material.opacity = Math.max(0, 0.9 - k);
+  }
+  if (life > 90) {
+    if (state.explosionParticles) {
+      scene.remove(state.explosionParticles);
+      state.explosionParticles.traverse(o => {
+        o.geometry?.dispose?.();
+        o.material?.dispose?.();
+      });
+      state.explosionParticles = null;
+    }
+    if (state.explosionRing) {
+      scene.remove(state.explosionRing);
+      state.explosionRing.geometry?.dispose?.();
+      state.explosionRing.material?.dispose?.();
+      state.explosionRing = null;
+    }
+  }
+}
+
+/* =========================================================
    PHYSICS & GAME LOOP
    ========================================================= */
 function resetBallToTee() {
@@ -2022,9 +2506,29 @@ function applyShot(shot) {
   state.phase = 'rolling';
   arrowGroup.visible = false;
   hidePowerMeter();
+
+  // --- Difficulty mode triggers (first hit only) ---
+  if (state.difficultyMode === 'oliver' && !state.oliverTriggered) {
+    state.oliverTriggered = true;
+    setTimeout(() => triggerOliverExplosion(), 550);
+    return;
+  }
+  if (state.difficultyMode === 'easy' && state.firstShotThisHole) {
+    state.firstShotThisHole = false;
+    // Let the ball roll briefly so it feels like the claw reacts to the shot
+    setTimeout(() => deployClaw(), 750);
+  }
 }
 
 function physicsStep(dt) {
+  // Claw (Easy mode): drives the ball itself, skip normal physics
+  if (state.phase === 'clawActive') {
+    updateClaw();
+    return;
+  }
+  // Exploded (Oliver mode): ball has been destroyed; no physics
+  if (state.phase === 'exploded') return;
+
   // Rocket travel phase (ball constrained to rocket path)
   if (state.phase === 'rocketTravel') {
     state.rocketTimer++;
@@ -2336,6 +2840,9 @@ function startGame() {
   state.holeIndex = 0;
   state.strokes = [];
   state.currentStrokes = 0;
+  state.oliverTriggered = false;
+  cleanupDifficultyFx();
+  ball.visible = true;
   hideOverlay('title-screen');
   document.getElementById('hud').classList.remove('hidden');
   loadHole(0);
@@ -2344,13 +2851,38 @@ function startGame() {
 function loadHole(idx) {
   state.holeIndex = idx;
   state.currentStrokes = 0;
+  state.firstShotThisHole = true;
   state.course = COURSES[idx];
   buildCourse(state.course);
   resetBallToTee();
+  ball.visible = true;
   updateHUD();
   showHoleBanner(state.course, idx);
   state.phase = 'aim';
   showHint();
+}
+
+function cleanupDifficultyFx() {
+  if (state.claw) {
+    scene.remove(state.claw);
+    state.claw.traverse?.(o => {
+      o.geometry?.dispose?.();
+      if (o.material) {
+        if (Array.isArray(o.material)) o.material.forEach(m => m.dispose());
+        else o.material.dispose();
+      }
+    });
+    state.claw = null;
+    state.clawPhase = null;
+  }
+  if (state.explosionParticles) {
+    scene.remove(state.explosionParticles);
+    state.explosionParticles = null;
+  }
+  if (state.explosionRing) {
+    scene.remove(state.explosionRing);
+    state.explosionRing = null;
+  }
 }
 
 function onHoleComplete() {
@@ -2536,6 +3068,87 @@ document.getElementById('btn-clear-scores').addEventListener('click', () => {
   }
 });
 
+/* =========================================================
+   SECRET DIFFICULTY CONTROLS (PAVEL)
+   ========================================================= */
+(function wireSecretControls() {
+  const secret = document.getElementById('secret-touch');
+  const pinInput = document.getElementById('pin-input');
+  let pressTimer = null;
+  let pressed = false;
+
+  const startPress = (e) => {
+    // Don't interfere if a modal other than the title is open.
+    // Allow from title, leaderboard, final, hole-complete — just not from PIN/mode/game-over.
+    const blocked = ['pin-overlay','mode-overlay','game-over-overlay']
+      .some(id => document.getElementById(id).classList.contains('active'));
+    if (blocked) return;
+    pressed = true;
+    pressTimer = setTimeout(() => {
+      if (!pressed) return;
+      pinInput.value = '';
+      showOverlay('pin-overlay');
+      setTimeout(() => pinInput.focus(), 80);
+    }, 1200);
+  };
+  const endPress = () => {
+    pressed = false;
+    clearTimeout(pressTimer);
+    pressTimer = null;
+  };
+
+  secret.addEventListener('touchstart', (e) => { e.preventDefault(); startPress(e); }, { passive: false });
+  secret.addEventListener('touchend',   (e) => { e.preventDefault(); endPress(); },   { passive: false });
+  secret.addEventListener('touchcancel',(e) => { endPress(); });
+  secret.addEventListener('mousedown', startPress);
+  secret.addEventListener('mouseup',   endPress);
+  secret.addEventListener('mouseleave',endPress);
+
+  document.getElementById('btn-pin-submit').addEventListener('click', () => {
+    if (pinInput.value === PAVEL_PIN) {
+      hideOverlay('pin-overlay');
+      updateModeButtons();
+      showOverlay('mode-overlay');
+    } else {
+      showToast('Wrong PIN', 1100);
+      pinInput.value = '';
+      pinInput.focus();
+    }
+  });
+  document.getElementById('btn-pin-cancel').addEventListener('click', () => hideOverlay('pin-overlay'));
+  pinInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('btn-pin-submit').click(); }
+    if (e.key === 'Escape') { e.preventDefault(); hideOverlay('pin-overlay'); }
+  });
+
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.difficultyMode = btn.dataset.mode;
+      localStorage.setItem('tsgolf.difficulty', state.difficultyMode);
+      updateModeButtons();
+      showToast(`Mode: ${btn.dataset.mode.toUpperCase()}`, 1300);
+    });
+  });
+  document.getElementById('btn-mode-close').addEventListener('click', () => hideOverlay('mode-overlay'));
+
+  document.getElementById('btn-go-back').addEventListener('click', () => {
+    hideOverlay('game-over-overlay');
+    cleanupDifficultyFx();
+    ball.visible = true;
+    resetBallToTee();
+    state.oliverTriggered = false;
+    state.phase = 'title';
+    document.getElementById('hud').classList.add('hidden');
+    showOverlay('title-screen');
+  });
+})();
+
+function updateModeButtons() {
+  document.querySelectorAll('.mode-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === state.difficultyMode);
+  });
+}
+
 // Focus input when title shown
 setTimeout(() => {
   const stored = localStorage.getItem('toyStoryGolf.lastName');
@@ -2558,7 +3171,8 @@ function loop(now) {
   physicsStep(dt);
   updateCamera(dt);
 
-  // Flag wave / star spin / rocket flicker
+  // Flag wave / star spin / rocket flicker / character face-ball + bob
+  const charactersFace = (state.phase !== 'title');
   courseRoot.traverse(o => {
     if (o.userData?.flag)    { o.rotation.z = Math.sin(now * 0.003) * 0.1; }
     if (o.userData?.spin)    { o.rotation.z += 0.02; }
@@ -2567,7 +3181,27 @@ function loop(now) {
       o.scale.set(f, 0.9 + Math.random() * 0.22, f);
       o.material.opacity = 0.75 + Math.random() * 0.2;
     }
+    if (o.userData?.facesBall && charactersFace) {
+      const dx = ball.position.x - o.position.x;
+      const dz = ball.position.z - o.position.z;
+      if (dx*dx + dz*dz > 0.01) {
+        const target = Math.atan2(dx, dz);
+        let diff = target - o.rotation.y;
+        while (diff >  Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        o.rotation.y += diff * 0.09;
+      }
+    }
+    if (o.userData?.bobs) {
+      const phase = o.userData.bobPhase || 0;
+      const wave  = o.userData.wavePhase || 0;
+      o.position.y = (o.userData.baseY || 0) + Math.sin(now * 0.003 + phase) * 0.08;
+      o.rotation.z = Math.sin(now * 0.0024 + wave) * 0.035;
+    }
   });
+
+  // Difficulty-mode FX
+  updateExplosion();
 
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
